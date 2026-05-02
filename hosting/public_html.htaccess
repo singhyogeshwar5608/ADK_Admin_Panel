@@ -1,0 +1,68 @@
+# Apache .htaccess Configuration for React SPA (+ Laravel /api on same host)
+# Enable Rewrite Engine
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteBase /
+
+    # Force HTTPS
+    RewriteCond %{HTTPS} off
+    RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+    # Redirect non-www to www
+    RewriteCond %{HTTP_HOST} ^offerlifetime\.com [NC]
+    RewriteRule ^(.*)$ https://www.offerlifetime.com/$1 [L,R=301]
+
+    # Handle React Router — send non-file requests to index.html EXCEPT Laravel:
+    # /api/*  aur /sanctum/* ko index.html par mat bhejo, warna browser ko HTML
+    # milta hai JSON ki jagah → "CORS" / preflight fail jaisa dikhta hai.
+    # /storage-proxy/* aur /storage/* = product images (Laravel web routes / symlink).
+    RewriteCond %{REQUEST_URI} !^/api/
+    RewriteCond %{REQUEST_URI} !^/sanctum/
+    RewriteCond %{REQUEST_URI} !^/storage-proxy/
+    RewriteCond %{REQUEST_URI} !^/storage/
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule . /index.html [L]
+</IfModule>
+
+# Disable directory browsing
+Options -Indexes
+
+# Enable Gzip Compression
+<IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE text/html text/plain text/xml text/css text/javascript application/javascript application/json
+</IfModule>
+
+# Browser Caching
+<IfModule mod_expires.c>
+    ExpiresActive On
+    ExpiresByType image/jpg "access plus 1 year"
+    ExpiresByType image/jpeg "access plus 1 year"
+    ExpiresByType image/gif "access plus 1 year"
+    ExpiresByType image/png "access plus 1 year"
+    ExpiresByType image/svg+xml "access plus 1 year"
+    ExpiresByType text/css "access plus 1 month"
+    ExpiresByType application/javascript "access plus 1 month"
+    ExpiresByType application/pdf "access plus 1 month"
+    ExpiresByType text/html "access plus 0 seconds"
+</IfModule>
+
+# Security Headers
+<IfModule mod_headers.c>
+    # Prevent clickjacking
+    Header always set X-Frame-Options "SAMEORIGIN"
+
+    # XSS Protection
+    Header always set X-XSS-Protection "1; mode=block"
+
+    # Prevent MIME type sniffing
+    Header always set X-Content-Type-Options "nosniff"
+
+    # Referrer Policy
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+</IfModule>
+
+# Error pages — pehle yahan ErrorDocument 404 /index.html tha; isse API ke 404/403
+# bhi index.html ban jaate the (HTML), isliye JSON + CORS preflight bigad jaata tha.
+# SPA ke unknown routes ke liye upar wala rewrite rule kaafi hai (index.html).
+# Agar site par bilkul /api nahi hai, tab hi neeche wale dobara enable karein.

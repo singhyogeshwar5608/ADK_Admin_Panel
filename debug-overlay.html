@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Debug Overlay Remover</title>
+    <script>
+        // Aggressive overlay remover
+        function removeAllOverlays() {
+            console.log('=== Starting aggressive overlay removal ===');
+            
+            // Method 1: Remove by class selectors
+            const selectors = [
+                '.fixed.inset-0',
+                '.z-50.fixed',
+                '.z-40.fixed',
+                '[class*="bg-slate-900"].fixed',
+                '[class*="bg-slate-900/60"]',
+                '[class*="bg-slate-900/70"]'
+            ];
+            
+            selectors.forEach(selector => {
+                const elements = document.querySelectorAll(selector);
+                console.log(`Found ${elements.length} elements matching: ${selector}`);
+                elements.forEach(el => {
+                    console.log('Removing:', el);
+                    el.remove();
+                });
+            });
+            
+            // Method 2: Remove by computed style
+            const allElements = document.querySelectorAll('*');
+            allElements.forEach(el => {
+                const style = window.getComputedStyle(el);
+                if (style.position === 'fixed' && 
+                    style.zIndex >= 40 && 
+                    (style.backgroundColor.includes('rgba') || style.backgroundColor.includes('rgb'))) {
+                    console.log('Removing by computed style:', el);
+                    el.remove();
+                }
+            });
+            
+            console.log('=== Overlay removal complete ===');
+        }
+        
+        // Run on page load
+        window.addEventListener('load', () => {
+            console.log('Page loaded, starting cleanup...');
+            removeAllOverlays();
+            
+            // Run again after delays
+            setTimeout(removeAllOverlays, 100);
+            setTimeout(removeAllOverlays, 500);
+            setTimeout(removeAllOverlays, 1000);
+            
+            // Set up continuous monitoring
+            setInterval(removeAllOverlays, 2000);
+        });
+    </script>
+</head>
+<body>
+    <h1>Debug Overlay Remover Active</h1>
+    <p>Check console for logs...</p>
+    <button onclick="removeAllOverlays()">Manually Remove Overlays</button>
+</body>
+</html>
