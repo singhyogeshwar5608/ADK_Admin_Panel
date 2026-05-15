@@ -101,6 +101,9 @@ function apiProductToFormState(p: Record<string, unknown>): ProductFormState {
     packAmount: numToInputStr(p.weight ?? 0),
     packUnit: weightUnitCodeToPackLabel(String(p.weightUnit ?? p.weight_unit ?? "g")),
     shippingCharge: numToInputStr(p.shippingCharge ?? p.shipping_charge ?? 0),
+    sgst: numToInputStr(p.sgst ?? 0),
+    cgst: numToInputStr(p.cgst ?? 0),
+    igst: numToInputStr(p.igst ?? 0),
     categoryId,
     description: String(p.description ?? ""),
     imageUrls: (() => {
@@ -185,6 +188,9 @@ type ProductFormState = {
   packAmount: string;
   packUnit: string;
   shippingCharge: string;
+  sgst: string;
+  cgst: string;
+  igst: string;
   categoryId: string;
   description: string;
   imageUrls: string[];
@@ -203,6 +209,9 @@ const emptyForm = (): ProductFormState => ({
   packAmount: "",
   packUnit: PACK_UNITS[0],
   shippingCharge: "",
+  sgst: "",
+  cgst: "",
+  igst: "",
   categoryId: "",
   description: "",
   imageUrls: [],
@@ -249,6 +258,7 @@ export function AddProductModal({
     const rec = extractProductRecord(detailQ.data);
     if (rec) setForm(apiProductToFormState(rec));
   }, [open, isEdit, detailQ.data]);
+
 
   const create = useMutation({
     mutationFn: (payload: Record<string, unknown>) => productsApi.create(payload),
@@ -378,6 +388,27 @@ export function AddProductModal({
       return;
     }
 
+    let sgstN = Number(form.sgst);
+    if (form.sgst.trim() === "") sgstN = 0;
+    if (!Number.isFinite(sgstN) || sgstN < 0) {
+      toast.error("SGST must be zero or greater.");
+      return;
+    }
+
+    let cgstN = Number(form.cgst);
+    if (form.cgst.trim() === "") cgstN = 0;
+    if (!Number.isFinite(cgstN) || cgstN < 0) {
+      toast.error("CGST must be zero or greater.");
+      return;
+    }
+
+    let igstN = Number(form.igst);
+    if (form.igst.trim() === "") igstN = 0;
+    if (!Number.isFinite(igstN) || igstN < 0) {
+      toast.error("IGST must be zero or greater.");
+      return;
+    }
+
     /** Laravel validates `images.*.url` — must be objects with absolute URLs. */
     const images = form.imageUrls.map((u) => u.trim()).filter(isHttpsOrHttpUrl).map((url) => ({ url }));
 
@@ -401,6 +432,9 @@ export function AddProductModal({
       weight: weightN,
       weight_unit: packLabelToWeightUnit(form.packUnit),
       shipping_charge: shipN,
+      sgst: sgstN,
+      cgst: cgstN,
+      igst: igstN,
       categories: form.categoryId.trim() ? [form.categoryId.trim()] : [],
       images,
       is_active: form.isActive,
@@ -430,8 +464,7 @@ export function AddProductModal({
       >
         <div className="flex shrink-0 items-start justify-between border-b border-slate-100 px-4 py-4 dark:border-white/10 sm:px-6 sm:py-5">
           <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.35em] text-slate-400">Catalog</p>
-            <h2 id={`${formId}-title`} className="mt-1 text-lg font-bold text-slate-900 dark:text-white sm:text-xl">
+            <h2 id={`${formId}-title`} className="text-lg font-bold text-slate-900 dark:text-white sm:text-xl">
               {isEdit ? "Edit product" : "Add product"}
             </h2>
           </div>
@@ -472,7 +505,7 @@ export function AddProductModal({
                   placeholder="Title"
                   value={form.title}
                   onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
-                  className="mt-1.5 w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none ring-primary/0 transition placeholder:text-slate-400 focus:border-primary focus:ring-2 focus:ring-primary/20 dark:border-white/10 dark:bg-slate-900 dark:text-white"
+                  className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs text-slate-900 outline-none ring-primary/0 transition placeholder:text-slate-400 focus:border-primary focus:ring-2 focus:ring-primary/20 dark:border-white/10 dark:bg-slate-900 dark:text-white"
                 />
               </label>
 
@@ -482,7 +515,7 @@ export function AddProductModal({
                   <input
                     value={form.sku}
                     onChange={(e) => setForm((f) => ({ ...f, sku: e.target.value }))}
-                    className="mt-1.5 w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 font-mono text-sm text-slate-900 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 dark:border-white/10 dark:bg-slate-900 dark:text-white"
+                    className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 font-mono text-xs text-slate-900 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 dark:border-white/10 dark:bg-slate-900 dark:text-white"
                   />
                 </label>
                 <label className="block">
@@ -494,7 +527,7 @@ export function AddProductModal({
                     placeholder="Sale price"
                     value={form.salePrice}
                     onChange={(e) => setForm((f) => ({ ...f, salePrice: e.target.value }))}
-                    className="mt-1.5 w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none placeholder:text-slate-400 focus:border-primary focus:ring-2 focus:ring-primary/20 dark:border-white/10 dark:bg-slate-900 dark:text-white"
+                    className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs text-slate-900 outline-none placeholder:text-slate-400 focus:border-primary focus:ring-2 focus:ring-primary/20 dark:border-white/10 dark:bg-slate-900 dark:text-white"
                   />
                 </label>
                 <label className="block">
@@ -506,7 +539,7 @@ export function AddProductModal({
                     placeholder="MRP"
                     value={form.mrp}
                     onChange={(e) => setForm((f) => ({ ...f, mrp: e.target.value }))}
-                    className="mt-1.5 w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none placeholder:text-slate-400 focus:border-primary focus:ring-2 focus:ring-primary/20 dark:border-white/10 dark:bg-slate-900 dark:text-white"
+                    className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs text-slate-900 outline-none placeholder:text-slate-400 focus:border-primary focus:ring-2 focus:ring-primary/20 dark:border-white/10 dark:bg-slate-900 dark:text-white"
                   />
                 </label>
                 <label className="block">
@@ -518,7 +551,7 @@ export function AddProductModal({
                     placeholder="0"
                     value={form.bv}
                     onChange={(e) => setForm((f) => ({ ...f, bv: e.target.value }))}
-                    className="mt-1.5 w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none placeholder:text-slate-400 focus:border-primary focus:ring-2 focus:ring-primary/20 dark:border-white/10 dark:bg-slate-900 dark:text-white"
+                    className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs text-slate-900 outline-none placeholder:text-slate-400 focus:border-primary focus:ring-2 focus:ring-primary/20 dark:border-white/10 dark:bg-slate-900 dark:text-white"
                   />
                 </label>
                 <label className="block">
@@ -528,9 +561,47 @@ export function AddProductModal({
                     placeholder="Stock"
                     value={form.stock}
                     onChange={(e) => setForm((f) => ({ ...f, stock: e.target.value }))}
-                    className="mt-1.5 w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none placeholder:text-slate-400 focus:border-primary focus:ring-2 focus:ring-primary/20 dark:border-white/10 dark:bg-slate-900 dark:text-white"
+                    className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs text-slate-900 outline-none placeholder:text-slate-400 focus:border-primary focus:ring-2 focus:ring-primary/20 dark:border-white/10 dark:bg-slate-900 dark:text-white"
                   />
                 </label>
+                <div className="grid grid-cols-3 gap-4">
+                  <label className="block">
+                    <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                      SGST (%)
+                    </span>
+                    <input
+                      inputMode="decimal"
+                      placeholder="0"
+                      value={form.sgst}
+                      onChange={(e) => setForm((f) => ({ ...f, sgst: e.target.value }))}
+                      className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs text-slate-900 outline-none placeholder:text-slate-400 focus:border-primary focus:ring-2 focus:ring-primary/20 dark:border-white/10 dark:bg-slate-900 dark:text-white"
+                    />
+                  </label>
+                  <label className="block">
+                    <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                      CGST (%)
+                    </span>
+                    <input
+                      inputMode="decimal"
+                      placeholder="0"
+                      value={form.cgst}
+                      onChange={(e) => setForm((f) => ({ ...f, cgst: e.target.value }))}
+                      className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs text-slate-900 outline-none placeholder:text-slate-400 focus:border-primary focus:ring-2 focus:ring-primary/20 dark:border-white/10 dark:bg-slate-900 dark:text-white"
+                    />
+                  </label>
+                  <label className="block">
+                    <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                      IGST (%)
+                    </span>
+                    <input
+                      inputMode="decimal"
+                      placeholder="0"
+                      value={form.igst}
+                      onChange={(e) => setForm((f) => ({ ...f, igst: e.target.value }))}
+                      className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs text-slate-900 outline-none placeholder:text-slate-400 focus:border-primary focus:ring-2 focus:ring-primary/20 dark:border-white/10 dark:bg-slate-900 dark:text-white"
+                    />
+                  </label>
+                </div>
                 <div className="block sm:col-span-2">
                   <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
                     Pack quantity / weight
@@ -542,12 +613,12 @@ export function AddProductModal({
                       placeholder="Amount"
                       value={form.packAmount}
                       onChange={(e) => setForm((f) => ({ ...f, packAmount: e.target.value }))}
-                      className="min-w-0 flex-1 rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none placeholder:text-slate-400 focus:border-primary focus:ring-2 focus:ring-primary/20 dark:border-white/10 dark:bg-slate-900 dark:text-white"
+                      className="min-w-0 flex-1 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs text-slate-900 outline-none placeholder:text-slate-400 focus:border-primary focus:ring-2 focus:ring-primary/20 dark:border-white/10 dark:bg-slate-900 dark:text-white"
                     />
                     <select
                       value={form.packUnit}
                       onChange={(e) => setForm((f) => ({ ...f, packUnit: e.target.value }))}
-                      className="w-40 shrink-0 rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 dark:border-white/10 dark:bg-slate-900 dark:text-white sm:w-48"
+                      className="w-40 shrink-0 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs text-slate-900 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 dark:border-white/10 dark:bg-slate-900 dark:text-white sm:w-48"
                     >
                       {PACK_UNITS.map((u) => (
                         <option key={u} value={u}>
@@ -572,10 +643,10 @@ export function AddProductModal({
                     placeholder="0"
                     value={form.shippingCharge}
                     onChange={(e) => setForm((f) => ({ ...f, shippingCharge: e.target.value }))}
-                    className="mt-1.5 w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none placeholder:text-slate-400 focus:border-primary focus:ring-2 focus:ring-primary/20 dark:border-white/10 dark:bg-slate-900 dark:text-white"
+                    className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs text-slate-900 outline-none placeholder:text-slate-400 focus:border-primary focus:ring-2 focus:ring-primary/20 dark:border-white/10 dark:bg-slate-900 dark:text-white"
                   />
                 </label>
-              </div>
+                              </div>
 
               <label className="block">
                 <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Categories</span>
@@ -583,7 +654,7 @@ export function AddProductModal({
                   value={form.categoryId}
                   disabled={catQ.isLoading || (!catQ.isLoading && categories.length === 0)}
                   onChange={(e) => setForm((f) => ({ ...f, categoryId: e.target.value }))}
-                  className="mt-1.5 w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-500 dark:border-white/10 dark:bg-slate-900 dark:text-white dark:disabled:bg-slate-900/50 dark:disabled:text-slate-500"
+                  className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs text-slate-900 outline-none placeholder:text-slate-400 focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-500 dark:border-white/10 dark:bg-slate-900 dark:text-white dark:disabled:bg-slate-900/50 dark:disabled:text-slate-500"
                 >
                   <option value="">
                     {catQ.isLoading
@@ -607,7 +678,7 @@ export function AddProductModal({
                   placeholder="Describe the product"
                   value={form.description}
                   onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
-                  className="mt-1.5 w-full resize-y rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none placeholder:text-slate-400 focus:border-primary focus:ring-2 focus:ring-primary/20 dark:border-white/10 dark:bg-slate-900 dark:text-white"
+                  className="mt-1 w-full resize-y rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs text-slate-900 outline-none placeholder:text-slate-400 focus:border-primary focus:ring-2 focus:ring-primary/20 dark:border-white/10 dark:bg-slate-900 dark:text-white"
                 />
               </label>
 
@@ -670,7 +741,7 @@ export function AddProductModal({
                     placeholder="https://… (full URL required)"
                     value={form.manualImageUrl}
                     onChange={(e) => setForm((f) => ({ ...f, manualImageUrl: e.target.value }))}
-                    className="min-w-[12rem] flex-1 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm dark:border-white/10 dark:bg-slate-900 dark:text-white"
+                    className="min-w-[12rem] flex-1 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs dark:border-white/10 dark:bg-slate-900 dark:text-white"
                   />
                   <button
                     type="button"

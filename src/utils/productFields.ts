@@ -89,6 +89,9 @@ export function parseProductRow(row: ProductRow) {
   }
   const weight = toNum(row.weight ?? row.productWeight ?? row.product_weight);
   const weightUnit = String(row.weightUnit ?? row.weight_unit ?? "").trim();
+  const sgst = toNum(row.sgst ?? 0);
+  const cgst = toNum(row.cgst ?? 0);
+  const igst = toNum(row.igst ?? 0);
   const inactiveExplicit =
     row.status === "INACTIVE" ||
     row.status === "DRAFT" ||
@@ -112,6 +115,9 @@ export function parseProductRow(row: ProductRow) {
     imageUrl: firstImageUrl(row),
     weight,
     weightUnit,
+    sgst,
+    cgst,
+    igst,
   };
 }
 

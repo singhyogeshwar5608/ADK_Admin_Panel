@@ -16,6 +16,7 @@ import { MlmIncomePage } from "@/pages/MlmIncomePage";
 import { OrdersPage } from "@/pages/OrdersPage";
 import { ProductsPage } from "@/pages/ProductsPage";
 import { SettingsPage } from "@/pages/SettingsPage";
+import { SocialLinksPage } from "@/pages/SocialLinksPage";
 import { Navigate, Route, Routes } from "react-router-dom";
 
 export default function App() {
@@ -32,6 +33,7 @@ export default function App() {
           <Route path="/hero-slider" element={<HeroSliderPage />} />
           <Route path="/event-media" element={<EventMediaPage />} />
           <Route path="/adk-events" element={<AdkEventsPage />} />
+          <Route path="/social-links" element={<SocialLinksPage />} />
           <Route element={<RequireAdmin />}>
             <Route path="/dashboard" element={<DashboardPage />} />
             <Route path="/members" element={<MembersPage />} />

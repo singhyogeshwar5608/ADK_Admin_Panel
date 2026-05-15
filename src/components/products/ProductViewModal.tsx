@@ -20,7 +20,9 @@ function pickCategories(raw: Record<string, unknown>): string {
   if (Array.isArray(c)) {
     return c
       .map((x) => {
-        if (typeof x === "string" || typeof x === "number") return String(x);
+        // If it's a number, it's likely a category ID - we need to handle this differently
+        if (typeof x === "number") return String(x);
+        if (typeof x === "string") return x;
         if (x && typeof x === "object") {
           const o = x as Record<string, unknown>;
           return strFrom(o.name ?? o.title ?? o.slug ?? o.id);
@@ -30,6 +32,8 @@ function pickCategories(raw: Record<string, unknown>): string {
       .filter(Boolean)
       .join(", ");
   }
+  // If categories is a single number (category ID), return empty string since we can't get the name
+  if (typeof c === "number") return "";
   return strFrom(c);
 }
 
@@ -59,6 +63,9 @@ export function ProductViewModal({
   const desc = pickDescription(raw);
   const cats = pickCategories(raw);
   const shipping = strFrom(raw.shippingCharge ?? raw.shipping_charge ?? raw.shipping);
+  const sgst = strFrom(raw.sgst ?? 0);
+  const cgst = strFrom(raw.cgst ?? 0);
+  const igst = strFrom(raw.igst ?? 0);
   const pack = [strFrom(raw.packAmount ?? raw.pack_amount), strFrom(raw.packUnit ?? raw.pack_unit)]
     .filter(Boolean)
     .join(" ");
@@ -107,6 +114,9 @@ export function ProductViewModal({
             <DetailTile label="SKU" value={product.sku || "—"} />
             <DetailTile label="BV" value={formatInt(product.bv)} />
             <DetailTile label="Stock" value={formatInt(product.stock)} />
+            <DetailTile label="SGST (%)" value={sgst} />
+            <DetailTile label="CGST (%)" value={cgst} />
+            <DetailTile label="IGST (%)" value={igst} />
             <DetailTile
               label="Sale price"
               value={formatRupee(Number.isFinite(product.sale) ? product.sale : product.mrp)}
