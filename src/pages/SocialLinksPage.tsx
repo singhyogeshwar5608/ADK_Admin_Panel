@@ -18,7 +18,11 @@ export function SocialLinksPage() {
       const { data } = await socialLinksApi.list();
       // Group by platform to ensure one row per platform
       const uniqueLinks: Record<string, SocialLink> = {};
-      data.links.forEach(link => {
+      
+      // Safety check: Ensure data.links exists before forEach
+      const linksArray = Array.isArray(data?.links) ? data.links : [];
+      
+      linksArray.forEach(link => {
         uniqueLinks[link.platform] = link;
       });
       setLinks(Object.values(uniqueLinks));

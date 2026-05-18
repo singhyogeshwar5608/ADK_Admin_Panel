@@ -7,9 +7,16 @@ export interface SocialLink {
   is_active?: boolean;
 }
 
+/**
+ * Using standard API client but with a more unique endpoint name
+ * to avoid Hostinger/LiteSpeed keyword blocking.
+ */
 export const socialLinksApi = {
-  list: () => api.get<{ links: SocialLink[] }>("social-links"),
-  update: (links: SocialLink[]) => api.put<{ message: string; links: SocialLink[] }>("social-links", { links }),
-  create: (platform: string, url: string) => api.post<{ message: string; link: SocialLink }>("social-links", { platform, url }),
-  delete: (id: number) => api.delete<{ message: string }>(`social-links/${id}`),
+  // Use 'media-manager' instead of 'social-links' to bypass security filters
+  list: () => api.get<{ links: SocialLink[] }>("media-manager"),
+  
+  // Use POST for everything to avoid PUT/DELETE restrictions on Live Server
+  update: (links: SocialLink[]) => api.post("media-manager", { action: 'update_all', links }),
+  create: (platform: string, url: string) => api.post("media-manager", { action: 'create', platform, url }),
+  delete: (id: number) => api.post("media-manager", { action: 'delete', id }),
 };
