@@ -1,0 +1,11 @@
+# Referral / signup bridge
+/signup    /signup/index.html   200
+/signup/   /signup/index.html   200
+
+# Wishlist deep links
+/w/*         /wishlist/index.html   200
+/wishlist    /wishlist/index.html   200
+/wishlist/*  /wishlist/index.html   200
+
+# React SPA
+/*    /index.html   200
