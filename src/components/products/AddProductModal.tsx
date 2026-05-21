@@ -98,12 +98,12 @@ function apiProductToFormState(p: Record<string, unknown>): ProductFormState {
     mrp: numToInputStr(total),
     bv: numToInputStr(p.bv),
     stock: numToInputStr(p.stock ?? p.stockQuantity),
-    packAmount: numToInputStr(p.weight ?? 0),
+    packAmount: numToInputStr(p.weight ?? p.productWeight ?? p.product_weight ?? 0),
     packUnit: weightUnitCodeToPackLabel(String(p.weightUnit ?? p.weight_unit ?? "g")),
     shippingCharge: numToInputStr(p.shippingCharge ?? p.shipping_charge ?? 0),
-    sgst: numToInputStr(p.sgst ?? 0),
-    cgst: numToInputStr(p.cgst ?? 0),
-    igst: numToInputStr(p.igst ?? 0),
+    sgst: numToInputStr(p.sgst ?? p.SGST ?? p.sgst_rate ?? 0),
+    cgst: numToInputStr(p.cgst ?? p.CGST ?? p.cgst_rate ?? 0),
+    igst: numToInputStr(p.igst ?? p.IGST ?? p.igst_rate ?? 0),
     categoryId,
     description: String(p.description ?? ""),
     imageUrls: (() => {
@@ -167,12 +167,15 @@ type CategoryOption = { id: string; label: string };
 
 function parseCategories(payload: unknown): CategoryOption[] {
   const rows = normalizeList(payload);
+  const seen = new Set<string>();
   return rows
     .map((r) => {
-      const id = r.id ?? r._id;
-      if (id == null) return null;
-      const label = String(r.name ?? r.title ?? r.slug ?? id);
-      return { id: String(id), label };
+      const label = String(r.name ?? r.title ?? r.slug ?? r.id ?? r._id ?? "");
+      if (!label || seen.has(label)) return null;
+      seen.add(label);
+      // We use the label (name) as the ID because the user wants to save category names 
+      // in the database instead of numeric IDs.
+      return { id: label, label };
     })
     .filter(Boolean) as CategoryOption[];
 }
