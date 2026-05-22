@@ -55,8 +55,9 @@ export function resolveMediaUrl(href: string | null | undefined): string | null 
   }
 
   // Direct `/storage/...` links (public disk) → same MediaProxyController
-  if (abs && t.startsWith("/storage/") && !lower.includes("storage-proxy")) {
-    const rest = t.replace(/^\/+/, "");
+  if (abs && lower.includes("/storage/") && !lower.includes("/media/")) {
+    const sIdx = lower.indexOf("/storage/");
+    const rest = t.slice(sIdx).replace(/^\/+/, ""); // "storage/products/..."
     return `${abs}/media/${rest}`;
   }
 

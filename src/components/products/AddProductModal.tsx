@@ -118,6 +118,8 @@ function apiProductToFormState(p: Record<string, unknown>): ProductFormState {
     })(),
     manualImageUrl: "",
     isActive: Boolean(p.isActive ?? p.is_active ?? true),
+    isMlm: Boolean(p.isMlm ?? p.is_mlm ?? false),
+    isComingSoon: Boolean(p.isComingSoon ?? p.is_coming_soon ?? false),
   };
 }
 
@@ -199,6 +201,8 @@ type ProductFormState = {
   imageUrls: string[];
   manualImageUrl: string;
   isActive: boolean;
+  isMlm: boolean;
+  isComingSoon: boolean;
 };
 
 const emptyForm = (): ProductFormState => ({
@@ -220,6 +224,8 @@ const emptyForm = (): ProductFormState => ({
   imageUrls: [],
   manualImageUrl: "",
   isActive: true,
+  isMlm: false,
+  isComingSoon: false,
 });
 
 export function AddProductModal({
@@ -441,6 +447,8 @@ export function AddProductModal({
       categories: form.categoryId.trim() ? [form.categoryId.trim()] : [],
       images,
       is_active: form.isActive,
+      is_mlm: form.isMlm,
+      is_coming_soon: form.isComingSoon,
     };
 
     if (isEdit && editProductId != null) {
@@ -603,6 +611,30 @@ export function AddProductModal({
                       onChange={(e) => setForm((f) => ({ ...f, igst: e.target.value }))}
                       className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs text-slate-900 outline-none placeholder:text-slate-400 focus:border-primary focus:ring-2 focus:ring-primary/20 dark:border-white/10 dark:bg-slate-900 dark:text-white"
                     />
+                  </label>
+                </div>
+                <div className="block sm:col-span-2">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={form.isMlm}
+                      onChange={(e) => setForm((f) => ({ ...f, isMlm: e.target.checked }))}
+                      className="h-4 w-4 rounded border-slate-300 text-primary focus:ring-primary dark:border-white/10 dark:bg-slate-900"
+                    />
+                    <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                      MLM Product (Is MLM)
+                    </span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer mt-2">
+                    <input
+                      type="checkbox"
+                      checked={form.isComingSoon}
+                      onChange={(e) => setForm((f) => ({ ...f, isComingSoon: e.target.checked }))}
+                      className="h-4 w-4 rounded border-slate-300 text-primary focus:ring-primary dark:border-white/10 dark:bg-slate-900"
+                    />
+                    <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                      Coming Soon Product
+                    </span>
                   </label>
                 </div>
                 <div className="block sm:col-span-2">

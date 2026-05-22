@@ -123,6 +123,8 @@ export function ProductViewModal({
             />
             <DetailTile label="MRP" value={formatRupee(product.mrp)} />
             <DetailTile label="Total price" value={formatRupee(product.total)} />
+            <DetailTile label="MLM Product" value={raw.isMlm || raw.is_mlm ? "Yes" : "No"} />
+            <DetailTile label="Coming Soon" value={raw.isComingSoon || raw.is_coming_soon ? "Yes" : "No"} />
             <DetailTile label="Status" value={product.active ? "Active" : "Inactive"} />
             {weightLabel ? <DetailTile label="Weight" value={weightLabel} /> : null}
             {cats ? <DetailTile label="Categories" value={cats} /> : null}

@@ -1,9 +1,13 @@
 import { membersApi } from "@/api/members";
 import { CreateMemberModal, type Leg } from "@/components/members/CreateMemberModal";
+import { MemberViewModal } from "@/components/members/MemberViewModal";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowDownCircle, ArrowLeft, Minus, Plus, Search, UserPlus, ZoomIn, ZoomOut } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { normalizeList } from "@/utils/normalizeList";
+import { normalizeMemberRow, type MemberListRow } from "@/types/memberList";
+import { toast } from "sonner";
+import { parseApiError } from "@/utils/parseApiError";
 
 type AnyObj = Record<string, unknown>;
 
@@ -357,10 +361,12 @@ function TreePortraitCard({
   node,
   depth,
   compact,
+  onClick,
 }: {
   node: TreeNode;
   depth: number;
   compact: boolean;
+  onClick?: (node: TreeNode) => void;
 }) {
   const isRoot = depth === 0;
   const rk = roleKind(node);
@@ -368,16 +374,16 @@ function TreePortraitCard({
   const pendingPay = node.binaryPurchasePaid === false;
 
   let borderRing =
-    "border border-slate-200 dark:border-white/10 shadow-[0_1px_3px_rgba(15,23,42,.08)]";
+    "border border-slate-200 dark:border-white/10 shadow-[0_1px_3px_rgba(15,23,42,.08)] transition-all hover:border-primary/50 hover:shadow-md cursor-pointer";
   if (isRoot)
     borderRing =
-      "border-2 border-amber-400 ring-2 ring-amber-200/70 dark:border-amber-400 dark:ring-amber-900/40 sm:border-[3px] sm:ring-4";
+      "border-2 border-amber-400 ring-2 ring-amber-200/70 dark:border-amber-400 dark:ring-amber-900/40 sm:border-[3px] sm:ring-4 transition-all hover:border-amber-500 hover:ring-amber-300 cursor-pointer";
   else if (depth === 1 && pendingPay)
     borderRing =
-      "border-2 border-amber-400 shadow-[0_2px_6px_rgba(245,158,11,.18)] dark:border-amber-500 sm:border-[3px] sm:shadow-[0_2px_8px_rgba(245,158,11,.2)]";
+      "border-2 border-amber-400 shadow-[0_2px_6px_rgba(245,158,11,.18)] dark:border-amber-500 sm:border-[3px] sm:shadow-[0_2px_8px_rgba(245,158,11,.2)] transition-all hover:border-amber-500 cursor-pointer";
   else if (depth === 1 && paid)
     borderRing =
-      "border-2 border-teal-500 shadow-[0_2px_6px_rgba(20,184,166,.18)] dark:border-teal-400 sm:border-[3px] sm:shadow-[0_2px_8px_rgba(20,184,166,.22)]";
+      "border-2 border-teal-500 shadow-[0_2px_6px_rgba(20,184,166,.18)] dark:border-teal-400 sm:border-[3px] sm:shadow-[0_2px_8px_rgba(20,184,166,.22)] transition-all hover:border-teal-600 cursor-pointer";
 
   const avClass = compact
     ? "h-10 w-10 sm:h-12 sm:w-12"
@@ -405,6 +411,7 @@ function TreePortraitCard({
   if (compact) {
     return (
       <div
+        onClick={() => onClick?.(node)}
         className={[
           "flex flex-col items-center rounded-2xl bg-white text-center dark:bg-slate-950",
           borderRing,
@@ -469,6 +476,7 @@ function TreePortraitCard({
 
   return (
     <div
+      onClick={() => onClick?.(node)}
       className={[
         "relative flex flex-col items-center rounded-2xl bg-white dark:bg-slate-950 sm:rounded-[22px]",
         borderRing,
@@ -484,6 +492,10 @@ function TreePortraitCard({
       {depth === 1 && (
         <button
           type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            // Optional: existing logic if any
+          }}
           className="absolute -right-0.5 -top-0.5 z-10 flex h-6 w-6 items-center justify-center rounded-full border border-slate-200 bg-white shadow sm:h-7 sm:w-7 dark:border-white/10 dark:bg-slate-900"
           aria-label="Expand subtree"
         >
@@ -554,18 +566,20 @@ function TreeLevel({
   depth,
   maxDepth,
   onRegisterUnder,
+  onNodeClick,
 }: {
   node: TreeNode;
   depth: number;
   maxDepth: number;
   onRegisterUnder?: (parent: TreeNode, leg: Leg) => void;
+  onNodeClick?: (node: TreeNode) => void;
 }) {
   const showChildren = depth < maxDepth;
   const compact = depth >= 2;
 
   return (
     <div className="flex flex-col items-center">
-      <TreePortraitCard node={node} depth={depth} compact={compact} />
+      <TreePortraitCard node={node} depth={depth} compact={compact} onClick={onNodeClick} />
 
       {showChildren && (
         <div className="mt-2 flex w-full flex-col items-stretch sm:mt-3 md:mt-4" style={{ minWidth: branchRowMinWidth(depth) }}>
@@ -578,6 +592,7 @@ function TreeLevel({
                   depth={depth + 1}
                   maxDepth={maxDepth}
                   onRegisterUnder={onRegisterUnder}
+                  onNodeClick={onNodeClick}
                 />
               ) : (
                 <RegisterSlotCard
@@ -593,6 +608,7 @@ function TreeLevel({
                   depth={depth + 1}
                   maxDepth={maxDepth}
                   onRegisterUnder={onRegisterUnder}
+                  onNodeClick={onNodeClick}
                 />
               ) : (
                 <RegisterSlotCard
@@ -617,7 +633,36 @@ export function BinaryTreePage() {
   const [memberId, setMemberId] = useState("");
   const [zoom, setZoom] = useState(1);
   const [registerCtx, setRegisterCtx] = useState<RegisterSlotContext | null>(null);
+  const [viewMember, setViewMember] = useState<MemberListRow | null>(null);
+  const [viewLoading, setViewLoading] = useState(false);
   const canvasRef = useRef<HTMLDivElement>(null);
+
+  const handleNodeClick = async (node: TreeNode) => {
+    // If node ID is numeric, use it; otherwise fallback to memberId
+    const target = node.id && !isNaN(Number(node.id)) ? node.id : node.memberId;
+    if (!target) return;
+
+    setViewMember(null);
+    setViewLoading(true);
+    try {
+      const res = await membersApi.get(target);
+      const payload = res.data as any;
+      
+      // The API returns { member: { ... } } or { data: { ... } } or just { ... }
+      let raw = payload;
+      if (raw && typeof raw === 'object') {
+        if ('member' in raw) raw = (raw as any).member;
+        if (raw && typeof raw === 'object' && 'data' in raw) raw = (raw as any).data;
+      }
+      
+      const member = normalizeMemberRow(raw as Record<string, unknown>);
+      setViewMember(member);
+    } catch (e) {
+      toast.error("Failed to load member details: " + parseApiError(e));
+    } finally {
+      setViewLoading(false);
+    }
+  };
 
   const binaryRegisterPrefill = useMemo(() => {
     if (!registerCtx) return null;
@@ -884,6 +929,7 @@ export function BinaryTreePage() {
                 depth={0}
                 maxDepth={treeDisplayMaxDepth}
                 onRegisterUnder={(parent, leg) => setRegisterCtx({ sponsor: parent, leg })}
+                onNodeClick={handleNodeClick}
               />
             </div>
           )}
@@ -911,6 +957,12 @@ export function BinaryTreePage() {
         open={registerCtx != null}
         onClose={() => setRegisterCtx(null)}
         binaryRegister={binaryRegisterPrefill}
+      />
+      <MemberViewModal
+        member={viewMember}
+        open={viewMember !== null}
+        onClose={() => setViewMember(null)}
+        isLoading={viewLoading}
       />
     </div>
   );

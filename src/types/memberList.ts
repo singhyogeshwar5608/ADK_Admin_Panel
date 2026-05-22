@@ -27,6 +27,8 @@ export interface MemberListRow {
   wallet?: {
     balance?: number;
     totalEarned?: number;
+    weeklyIncome?: number;
+    totalMatchedBv?: number;
   };
   stats?: {
     leftTeam?: number;
@@ -42,6 +44,9 @@ export interface MemberListRow {
   };
   kyc?: {
     status?: string;
+    aadharCard?: { number?: string; image?: string };
+    panCard?: { number?: string; image?: string };
+    bankAccount?: { number?: string; image?: string };
   };
 }
 
