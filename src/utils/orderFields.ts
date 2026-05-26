@@ -13,6 +13,13 @@ export type ParsedOrder = {
   memberName: string;
   memberId: string;
   memberEmail: string;
+  address?: string;
+  shiprocketOrderId?: string;
+  shiprocketShipmentId?: string;
+  trackingNumber?: string;
+  trackingStatus?: string;
+  courierName?: string;
+  lastTrackedAt?: string;
 };
 
 function toNum(v: unknown): number {
@@ -169,6 +176,21 @@ export function parseOrderRow(r: RawOrderRecord): ParsedOrder | null {
 
   const paymentLabel = String(r.paymentMethod ?? r.payment_method ?? r.gateway ?? "mock").toLowerCase();
 
+  const rawAddress = r.shippingAddress ?? r.shipping_address ?? r.address;
+  let address = "";
+  if (typeof rawAddress === "string") {
+    address = rawAddress;
+  } else if (rawAddress && typeof rawAddress === "object") {
+    const addr = rawAddress as Record<string, unknown>;
+    const parts = [
+      addr.address || addr.shipping_address,
+      addr.city,
+      addr.state,
+      addr.zip_code || addr.pincode || addr.zip || addr.zipcode,
+    ].filter(Boolean);
+    address = parts.join(", ");
+  }
+
   return {
     id,
     status,
@@ -180,6 +202,13 @@ export function parseOrderRow(r: RawOrderRecord): ParsedOrder | null {
     memberName: fallbackName || fallbackId || "—",
     memberId: fallbackId,
     memberEmail: fallbackEmail,
+    address,
+    shiprocketOrderId: r.shiprocketOrderId as string,
+    shiprocketShipmentId: r.shiprocketShipmentId as string,
+    trackingNumber: r.trackingNumber as string,
+    trackingStatus: r.trackingStatus as string,
+    courierName: r.courierName as string,
+    lastTrackedAt: r.lastTrackedAt as string,
   };
 }
 

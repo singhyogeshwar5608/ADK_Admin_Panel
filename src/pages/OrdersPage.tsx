@@ -13,6 +13,7 @@ import {
 } from "@/utils/orderFields";
 import { parseApiError } from "@/utils/parseApiError";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { RefreshCw, Truck } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
@@ -50,6 +51,15 @@ export function OrdersPage() {
     mutationFn: ({ id, status }: { id: string | number; status: string }) => ordersApi.status(id, { status }),
     onSuccess: () => {
       toast.success("Status updated");
+      void qc.invalidateQueries({ queryKey: ["orders"] });
+    },
+    onError: (e) => toast.error(parseApiError(e)),
+  });
+
+  const syncMut = useMutation({
+    mutationFn: (id: string | number) => ordersApi.syncTracking(id),
+    onSuccess: () => {
+      toast.success("Tracking status synced");
       void qc.invalidateQueries({ queryKey: ["orders"] });
     },
     onError: (e) => toast.error(parseApiError(e)),
@@ -179,9 +189,46 @@ export function OrdersPage() {
             <p className="text-xs text-slate-500">
               {o.memberId || "—"} · {o.memberEmail || "—"}
             </p>
+            {o.address && (
+              <p className="mt-1 text-[11px] leading-relaxed text-slate-400 dark:text-slate-500">
+                {o.address}
+              </p>
+            )}
             <p className="mt-2 font-semibold text-slate-900 dark:text-white">
               {formatRupeeOrder(o.amount)} · BV {o.bv || "—"}
             </p>
+
+            {(o.shiprocketOrderId || o.trackingNumber) && (
+              <div className="mt-3 rounded-xl border border-slate-100 bg-slate-50/50 p-2.5 dark:border-white/5 dark:bg-white/[0.02]">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="space-y-1">
+                    {o.shiprocketOrderId && (
+                      <p className="text-[10px] font-bold text-slate-500 uppercase">
+                        SR ID: <span className="text-slate-900 dark:text-white">{o.shiprocketOrderId}</span>
+                      </p>
+                    )}
+                    <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-900 dark:text-white">
+                      <Truck size={12} className="text-slate-400" />
+                      <span>{o.trackingNumber || "AWB Pending"}</span>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => syncMut.mutate(o.id)}
+                    disabled={syncMut.isPending}
+                    className="rounded-lg bg-white px-2 py-1 text-[10px] font-bold uppercase text-slate-500 shadow-sm dark:bg-slate-900"
+                  >
+                    Sync
+                  </button>
+                </div>
+                {o.trackingStatus && (
+                  <p className="mt-1.5 text-[10px] font-bold uppercase text-indigo-600 dark:text-indigo-400">
+                    {o.trackingStatus}
+                  </p>
+                )}
+              </div>
+            )}
+
             <div className="mt-3 flex flex-wrap gap-2">
               <select
                 value={o.status === "CONFIRMED" ? "PROCESSING" : o.status}
@@ -216,6 +263,7 @@ export function OrdersPage() {
                 <th className={TH}>Totals</th>
                 <th className={TH}>Status</th>
                 <th className={TH}>Payment</th>
+                <th className={TH}>Shiprocket</th>
                 <th className={`${TH} min-w-[220px]`}>Actions</th>
               </tr>
             </thead>
@@ -235,6 +283,11 @@ export function OrdersPage() {
                       {o.memberId ? `${o.memberId} · ` : ""}
                       {o.memberEmail || "—"}
                     </p>
+                    {o.address && (
+                      <p className="mt-1 text-[11px] leading-relaxed text-slate-400 line-clamp-2 max-w-[250px] dark:text-slate-500">
+                        {o.address}
+                      </p>
+                    )}
                   </td>
                   <td className="px-4 py-4 font-semibold text-slate-900 dark:px-5 dark:text-white">
                     <p>{formatRupeeOrder(o.amount)}</p>
@@ -254,6 +307,50 @@ export function OrdersPage() {
                     <p className="text-xs capitalize text-slate-400 dark:text-slate-500">{o.paymentLabel}</p>
                   </td>
                   <td className="px-4 py-4 sm:px-5">
+                    {o.shiprocketOrderId || o.trackingNumber ? (
+                      <div className="space-y-1.5">
+                        {o.shiprocketOrderId && (
+                          <div className="flex flex-col">
+                            <span className="text-[10px] font-bold uppercase text-slate-400">Order ID</span>
+                            <span className="text-[11px] font-bold text-slate-700 dark:text-slate-300">
+                              {o.shiprocketOrderId}
+                            </span>
+                          </div>
+                        )}
+                        <div className="flex flex-col">
+                          <span className="text-[10px] font-bold uppercase text-slate-400">Tracking / AWB</span>
+                          <div className="flex items-center gap-1.5 text-xs font-bold text-slate-900 dark:text-white">
+                            <Truck size={12} className="text-slate-400" />
+                            <span>{o.trackingNumber || "AWB Pending"}</span>
+                          </div>
+                        </div>
+                        {o.courierName && (
+                          <p className="text-[10px] font-bold text-slate-500 uppercase">
+                            {o.courierName}
+                          </p>
+                        )}
+                        {o.trackingStatus && (
+                          <p className="text-[10px] font-bold uppercase text-indigo-600 dark:text-indigo-400">
+                            {o.trackingStatus}
+                          </p>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => syncMut.mutate(o.id)}
+                          disabled={syncMut.isPending}
+                          className="flex items-center gap-1 text-[10px] font-bold uppercase text-slate-400 hover:text-primary pt-1"
+                        >
+                          <RefreshCw size={10} className={syncMut.isPending ? "animate-spin" : ""} />
+                          Sync Status
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col gap-1">
+                        <span className="text-[10px] font-medium text-slate-300 uppercase italic">Not Integrated</span>
+                      </div>
+                    )}
+                  </td>
+                  <td className="px-4 py-4 sm:px-5">
                     <select
                       value={o.status === "CONFIRMED" ? "PROCESSING" : o.status}
                       disabled={statusMut.isPending}
@@ -271,7 +368,7 @@ export function OrdersPage() {
               ))}
               {pageItems.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-16 text-center text-slate-500">
+                  <td colSpan={7} className="px-6 py-16 text-center text-slate-500">
                     No orders match your filters.
                   </td>
                 </tr>

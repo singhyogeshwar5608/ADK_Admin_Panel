@@ -4,110 +4,52 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>ADK — Open app</title>
-
   <style>
-    body {
-      font-family: system-ui, sans-serif;
-      padding: 1.25rem;
-      max-width: 28rem;
-      margin: 0 auto;
-    }
-
-    a {
-      color: #0d47a1;
-      word-break: break-all;
-    }
-
-    .muted {
-      color: #555;
-      font-size: 0.9rem;
-    }
+    body { font-family: system-ui, sans-serif; padding: 1.25rem; max-width: 28rem; margin: 0 auto; }
+    a { color: #0d47a1; word-break: break-all; }
+    .muted { color: #555; font-size: 0.9rem; }
   </style>
 </head>
 <body>
-
   <p id="status">Opening the ADK app…</p>
-
   <p id="fallback" class="muted" hidden>
-    If nothing happens, open:
+    If nothing happens, install the ADK app and tap:
     <a id="native" href="#">Open in ADK app</a>
   </p>
-
   <script>
     (function () {
-
-      // ====================================================
-      // CHANGE THIS WHEN APP GOES LIVE
-      // ====================================================
-      var IS_PRODUCTION = false;
-
-      // ====================================================
-      // QUERY PARAMS
-      // ====================================================
       var q = new URLSearchParams(window.location.search);
-
       var ref = q.get('ref') || '';
-
       var leg = (q.get('leg') || 'LEFT').toUpperCase();
-
       if (leg !== 'RIGHT') leg = 'LEFT';
+      var qs = 'ref=' + encodeURIComponent(ref) + '&leg=' + encodeURIComponent(leg);
+      var nativeUrl = 'adkpartner://signup?' + qs;
 
-      var qs =
-        'ref=' + encodeURIComponent(ref) +
-        '&leg=' + encodeURIComponent(leg);
-
-      // ====================================================
-      // DEEP LINK
-      // ====================================================
-      var nativeUrl =
-        'adkpartner://signup?' + qs;
-
-      // ====================================================
-      // FALLBACK BUTTON
-      // ====================================================
       var nativeA = document.getElementById('native');
-
       nativeA.href = nativeUrl;
-
       nativeA.addEventListener('click', function () {
-
         window.location.href = nativeUrl;
-
       });
 
-      // ====================================================
-      // TRY OPENING APP
-      // ====================================================
-      window.location.href = nativeUrl;
-
-      // ====================================================
-      // PLAY STORE FALLBACK ONLY IN PRODUCTION
-      // ====================================================
-      if (IS_PRODUCTION) {
-
-        setTimeout(function () {
-
-          window.location.href =
-            'https://play.google.com/store/apps/details?id=com.example.netshop_flutter';
-
-        }, 2000);
-
+      var isAndroid = /Android/i.test(navigator.userAgent);
+      if (isAndroid) {
+        var intent =
+          'intent://adkpro.netlify.app/signup?' + qs +
+          '#Intent;scheme=https;package=com.netshop.partner;' +
+          'action=android.intent.action.VIEW;' +
+          'category=android.intent.category.BROWSABLE;' +
+          'category=android.intent.category.DEFAULT;end';
+        window.location.replace(intent);
+      } else {
+        window.location.replace(nativeUrl);
       }
 
-      // ====================================================
-      // SHOW MANUAL BUTTON
-      // ====================================================
       setTimeout(function () {
-
         document.getElementById('status').textContent =
-          'Still here? Tap below to open the app manually.';
-
+          'Still here? Open the link below, or open this page in Chrome/Safari if you are inside WhatsApp/Facebook.';
         document.getElementById('fallback').hidden = false;
-
-      }, 1500);
-
+      }, 2000);
     })();
   </script>
-
 </body>
 </html>
