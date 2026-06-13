@@ -12,6 +12,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
 const TABLE_HEADERS = [
+  "ID No.",
   "Member",
   "Member-ID",
   "Left Team",
@@ -46,6 +47,7 @@ export function MembersPage() {
   const [editMemberId, setEditMemberId] = useState<string | null>(null);
   const [viewMember, setViewMember] = useState<MemberListRow | null>(null);
   const [menuForId, setMenuForId] = useState<string | null>(null);
+  const [menuPos, setMenuPos] = useState<{ x: number; y: number } | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
   const q = useQuery({
@@ -94,7 +96,10 @@ export function MembersPage() {
     if (!menuForId) return;
     const onDoc = (ev: MouseEvent) => {
       const el = menuRef.current;
-      if (el && !el.contains(ev.target as Node)) setMenuForId(null);
+      if (el && !el.contains(ev.target as Node)) {
+        setMenuForId(null);
+        setMenuPos(null);
+      }
     };
     document.addEventListener("mousedown", onDoc);
     return () => document.removeEventListener("mousedown", onDoc);
@@ -206,7 +211,7 @@ export function MembersPage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-base font-semibold text-slate-900 dark:text-white">{m.fullName}</p>
-                    <p className="text-xs uppercase text-slate-400">{m.memberId}</p>
+                    <p className="text-xs text-slate-400">No. {m.serialNo != null ? String(m.serialNo) : "—"} &middot; {m.memberId}</p>
                   </div>
                   <MemberStatusBadge status={m.status} />
                 </div>
@@ -307,7 +312,7 @@ export function MembersPage() {
                 {q.isLoading
                   ? Array.from({ length: 5 }).map((_, i) => (
                       <tr key={i}>
-                        <td colSpan={13} className="px-4 py-6 sm:px-6">
+                        <td colSpan={14} className="px-4 py-6 sm:px-6">
                           <div className="h-4 w-full animate-pulse rounded bg-slate-100 dark:bg-white/5" />
                         </td>
                       </tr>
@@ -324,9 +329,11 @@ export function MembersPage() {
                     const rightBv = m.stats?.rightBv ?? m.bv?.rightLeg ?? 0;
                     const leftChild = m.stats?.leftChild ?? "—";
                     const rightChild = m.stats?.rightChild ?? "—";
-                    const toggleLabel = m.status === "ACTIVE" ? "Deactivate" : "Activate";
                     return (
                       <tr key={id} className="hover:bg-slate-50/60 dark:hover:bg-white/5">
+                        <td className="px-4 py-4 text-sm text-slate-500 sm:px-6 dark:text-slate-300">
+                          {m.serialNo != null ? String(m.serialNo) : "—"}
+                        </td>
                         <td className="px-4 py-4 uppercase sm:px-6">
                           <div className="text-slate-900 dark:text-white">{m.fullName}</div>
                         </td>
@@ -380,59 +387,18 @@ export function MembersPage() {
                                 className="rounded-full p-2 hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-white/10"
                                 onClick={(ev) => {
                                   ev.stopPropagation();
-                                  setMenuForId((cur) => (cur === id ? null : id));
+                                  const rect = (ev.currentTarget as HTMLElement).getBoundingClientRect();
+                                  if (menuForId === id) {
+                                    setMenuForId(null);
+                                    setMenuPos(null);
+                                  } else {
+                                    setMenuForId(id);
+                                    setMenuPos({ x: rect.right, y: rect.bottom });
+                                  }
                                 }}
                               >
                                 <MoreVertical className="h-4 w-4" />
                               </button>
-                              {menuOpen ? (
-                                <div className="absolute right-0 z-10 mt-2 w-44 rounded-2xl border border-slate-100 bg-white py-2 shadow-xl dark:border-white/10 dark:bg-slate-900">
-                                  <button
-                                    type="button"
-                                    className="w-full px-4 py-2 text-left text-sm text-slate-600 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-white/10"
-                                    onClick={() => {
-                                      setMenuForId(null);
-                                      setViewMember(m);
-                                    }}
-                                  >
-                                    View
-                                  </button>
-                                  <button
-                                    type="button"
-                                    className="w-full px-4 py-2 text-left text-sm text-slate-600 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-white/10"
-                                    onClick={() => {
-                                      setMenuForId(null);
-                                      const id = rowId(m);
-                                      if (!id) {
-                                        toast.error("Member identifier missing");
-                                        return;
-                                      }
-                                      setCreateOpen(false);
-                                      setEditMemberId(id);
-                                    }}
-                                  >
-                                    Edit
-                                  </button>
-                                  <button
-                                    type="button"
-                                    className="w-full px-4 py-2 text-left text-sm text-slate-600 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-white/10"
-                                    onClick={() => onToggleStatus(m)}
-                                  >
-                                    {toggleLabel}
-                                  </button>
-                                  <button
-                                    type="button"
-                                    className="w-full px-4 py-2 text-left text-sm text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-500/10"
-                                    onClick={() => {
-                                      setMenuForId(null);
-                                      void onDelete(m);
-                                    }}
-                                    disabled={del.isPending}
-                                  >
-                                    Delete
-                                  </button>
-                                </div>
-                              ) : null}
                             </div>
                           </div>
                         </td>
@@ -441,7 +407,7 @@ export function MembersPage() {
                   })}
                 {!q.isLoading && filtered.length === 0 ? (
                   <tr>
-                    <td colSpan={13} className="px-6 py-12 text-center text-slate-400">
+                    <td colSpan={14} className="px-6 py-12 text-center text-slate-400">
                       No members match your search.
                     </td>
                   </tr>
@@ -475,6 +441,48 @@ export function MembersPage() {
         }}
       />
       <MemberViewModal open={viewMember != null} member={viewMember} onClose={() => setViewMember(null)} />
+
+      {menuForId && menuPos ? (
+        <>
+          <div className="fixed inset-0 z-40" onClick={() => { setMenuForId(null); setMenuPos(null); }} />
+          <div
+            ref={menuRef}
+            className="fixed z-50 w-44 rounded-2xl border border-slate-100 bg-white py-2 shadow-xl dark:border-white/10 dark:bg-slate-900"
+            style={{ right: window.innerWidth - menuPos.x, top: menuPos.y }}
+          >
+            {(() => {
+              const m = filtered.find((x) => rowId(x) === menuForId);
+              if (!m) return null;
+              const toggleLabel = m.status === "ACTIVE" ? "Deactivate" : "Activate";
+              return (
+                <>
+                  <button type="button" className="w-full px-4 py-2 text-left text-sm text-slate-600 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-white/10" onClick={() => { setMenuForId(null); setViewMember(m); }}>
+                    View
+                  </button>
+                  <button type="button" className="w-full px-4 py-2 text-left text-sm text-slate-600 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-white/10" onClick={() => { setMenuForId(null); const id = rowId(m); if (!id) { toast.error("Member identifier missing"); return; } setCreateOpen(false); setEditMemberId(id); }}>
+                    Edit
+                  </button>
+                  {m.status === "PENDING" ? (
+                    <button type="button" className="w-full px-4 py-2 text-left text-sm text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-500/10" onClick={() => { setMenuForId(null); const id = rowId(m); if (!id) { toast.error("Member identifier missing"); return; } patchStatus.mutate({ id, status: "ACTIVE" }); }}>
+                      Approve
+                    </button>
+                  ) : (
+                    <button type="button" className="w-full px-4 py-2 text-left text-sm text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-500/10" onClick={() => { setMenuForId(null); const id = rowId(m); if (!id) { toast.error("Member identifier missing"); return; } patchStatus.mutate({ id, status: "PENDING" }); }}>
+                      Set Pending
+                    </button>
+                  )}
+                  <button type="button" className="w-full px-4 py-2 text-left text-sm text-slate-600 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-white/10" onClick={() => onToggleStatus(m)}>
+                    {toggleLabel}
+                  </button>
+                  <button type="button" className="w-full px-4 py-2 text-left text-sm text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-500/10" onClick={() => { setMenuForId(null); void onDelete(m); }} disabled={del.isPending}>
+                    Delete
+                  </button>
+                </>
+              );
+            })()}
+          </div>
+        </>
+      ) : null}
     </div>
   );
 }

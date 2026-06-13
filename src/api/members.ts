@@ -16,4 +16,12 @@ export const membersApi = {
     const d = data as { file?: { url?: string }; url?: string };
     return d.file?.url ?? d.url ?? "";
   },
+  /** Upload a KYC document / QR code image. Returns public URL. */
+  uploadKycDoc: async (file: File) => {
+    const body = new FormData();
+    body.append("file", file);
+    const { data } = await api.post<unknown>("/media/members/kyc", body);
+    const d = data as { file?: { url?: string }; url?: string };
+    return d.file?.url ?? d.url ?? "";
+  },
 };

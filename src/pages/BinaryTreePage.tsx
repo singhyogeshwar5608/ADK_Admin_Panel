@@ -18,6 +18,7 @@ type TreeNode = {
   role?: string;
   profileUrl?: string | null;
   isActive?: boolean | null;
+  statusRaw?: string | null;
   /** Laravel `binaryTreePurchaseState`: paid vs pending (yellow/green in UI legend). */
   binaryPurchasePaid?: boolean | null;
   totalBv?: number | null;
@@ -124,6 +125,7 @@ function parseNode(raw: unknown): TreeNode | null {
   const role = pick(o, ["role", "type"]);
   const profileUrl = pick(o, ["profileImage", "profile_image", "profileUrl", "profile_url", "avatar", "photo"]);
   const isActive = pick(o, ["isActive", "is_active", "active", "status"]);
+  const statusRaw = typeof isActive === "string" ? isActive : null;
   const totalBv = pick(o, ["totalBv", "total_bv", "bv", "totalBV"]);
   const leftBv = pick(o, ["leftBv", "left_bv", "leftBV"]);
   const rightBv = pick(o, ["rightBv", "right_bv", "rightBV"]);
@@ -168,6 +170,7 @@ function parseNode(raw: unknown): TreeNode | null {
     role: toStr(role) || undefined,
     profileUrl: typeof profileUrl === "string" ? profileUrl : null,
     isActive: status,
+    statusRaw,
     binaryPurchasePaid,
     totalBv: toNum(totalBv),
     leftBv: toNum(leftBv),
@@ -190,6 +193,7 @@ function parseFlatMemberNode(raw: unknown): TreeNode | null {
   const role = pick(o, ["role", "type"]);
   const profileUrl = pick(o, ["profileImage", "profile_image", "profileUrl", "profile_url"]);
   const st = pick(o, ["status", "member_status", "memberStatus"]);
+  const statusRaw = typeof st === "string" ? st : null;
   const isActive =
     typeof st === "boolean"
       ? st
@@ -232,6 +236,7 @@ function parseFlatMemberNode(raw: unknown): TreeNode | null {
     role: toStr(role) || undefined,
     profileUrl: typeof profileUrl === "string" ? profileUrl : null,
     isActive,
+    statusRaw,
     binaryPurchasePaid,
     totalBv: toNum(totalBvVal),
     leftBv: toNum(leftBv2),
@@ -373,6 +378,23 @@ function TreePortraitCard({
   const paid = node.binaryPurchasePaid === true;
   const pendingPay = node.binaryPurchasePaid === false;
 
+  const cardBg =
+    node.statusRaw === "PENDING"
+      ? "bg-amber-300 dark:bg-amber-700/60"
+      : node.statusRaw === "ACTIVE"
+        ? "bg-emerald-200 dark:bg-emerald-700/50"
+        : "bg-white dark:bg-slate-950";
+
+  const cardText =
+    node.statusRaw === "PENDING" || node.statusRaw === "ACTIVE"
+      ? "text-black dark:text-black"
+      : "text-slate-900 dark:text-white";
+
+  const cardSubText =
+    node.statusRaw === "PENDING" || node.statusRaw === "ACTIVE"
+      ? "text-black/60 dark:text-black/60"
+      : "text-slate-400 dark:text-slate-400";
+
   let borderRing =
     "border border-slate-200 dark:border-white/10 shadow-[0_1px_3px_rgba(15,23,42,.08)] transition-all hover:border-primary/50 hover:shadow-md cursor-pointer";
   if (isRoot)
@@ -413,22 +435,24 @@ function TreePortraitCard({
       <div
         onClick={() => onClick?.(node)}
         className={[
-          "flex flex-col items-center rounded-2xl bg-white text-center dark:bg-slate-950",
+          "flex flex-col items-center rounded-2xl text-center",
+          cardBg,
           borderRing,
           cardW,
           py,
         ].join(" ")}
       >
         {avatar}
-        <p className="mt-1.5 w-full truncate text-[10px] font-semibold leading-tight text-slate-900 dark:text-white sm:mt-2 sm:text-[11px]">
+        <p className={`mt-1.5 w-full truncate text-[10px] font-semibold leading-tight sm:mt-2 sm:text-[11px] ${cardText}`}>
           {node.name}
         </p>
-        <p className="mt-0.5 w-full truncate text-[8px] text-slate-400 sm:text-[9px]">{node.memberId}</p>
+        <p className={`mt-0.5 w-full truncate text-[8px] sm:text-[9px] ${cardSubText}`}>{node.memberId}</p>
       </div>
     );
   }
 
   let statusRow: ReactNode = null;
+  const statusTextWhite = node.statusRaw === "PENDING" || node.statusRaw === "ACTIVE" ? "!text-black" : "";
   if (node.binaryPurchasePaid !== undefined && node.binaryPurchasePaid !== null) {
     statusRow = (
       <span
@@ -437,6 +461,7 @@ function TreePortraitCard({
           paid
             ? "bg-emerald-50 text-teal-700 dark:bg-teal-300/15 dark:text-emerald-200"
             : "bg-amber-50 text-amber-800 dark:bg-amber-400/18 dark:text-amber-100",
+          statusTextWhite,
         ].join(" ")}
       >
         <span className={["inline-block h-2 w-2 rounded-full", paid ? "bg-emerald-500" : "bg-amber-400"].join(" ")} />
@@ -451,6 +476,7 @@ function TreePortraitCard({
           className={[
             "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[9px] font-bold sm:px-2.5 sm:py-1 sm:text-[10px]",
             active ? "bg-emerald-50 text-teal-700 dark:bg-teal-300/15 dark:text-emerald-200" : "bg-slate-100 text-slate-600 dark:bg-white/10",
+            statusTextWhite,
           ].join(" ")}
         >
           <span className={active ? "h-2 w-2 rounded-full bg-emerald-500" : "h-2 w-2 rounded-full bg-slate-400"} /> ACTIVE
@@ -468,6 +494,7 @@ function TreePortraitCard({
         className={[
           "rounded-full px-2 py-0.5 text-[9px] font-extrabold uppercase tracking-[0.14em] sm:px-3 sm:text-[10px] sm:tracking-[0.22em]",
           pendingPay ? "bg-amber-100 text-amber-900 dark:bg-amber-400/25 dark:text-amber-50" : "bg-teal-50 text-teal-800 dark:bg-teal-400/15 dark:text-teal-50",
+          node.statusRaw === "PENDING" || node.statusRaw === "ACTIVE" ? "!text-black" : "",
         ].join(" ")}
       >
         Member
@@ -478,7 +505,8 @@ function TreePortraitCard({
     <div
       onClick={() => onClick?.(node)}
       className={[
-        "relative flex flex-col items-center rounded-2xl bg-white dark:bg-slate-950 sm:rounded-[22px]",
+        "relative flex flex-col items-center rounded-2xl sm:rounded-[22px]",
+        cardBg,
         borderRing,
         cardW,
         py,
@@ -505,10 +533,10 @@ function TreePortraitCard({
 
       <div className="flex justify-center">{avatar}</div>
 
-      <p className="mt-2 truncate text-center text-[12px] font-bold leading-tight text-slate-900 dark:text-white sm:mt-3 sm:text-[14px] md:text-[15px]">
+      <p className={`mt-2 truncate text-center text-[12px] font-bold leading-tight sm:mt-3 sm:text-[14px] md:text-[15px] ${cardText}`}>
         {node.name}
       </p>
-      <p className="mt-1 truncate text-center text-[10px] font-semibold uppercase tracking-[0.1em] text-slate-500 dark:text-slate-400 sm:mt-1.5 sm:text-[11px] md:text-[12px]">
+      <p className={`mt-1 truncate text-center text-[10px] font-semibold uppercase tracking-[0.1em] sm:mt-1.5 sm:text-[11px] md:text-[12px] ${cardSubText}`}>
         {node.memberId}
       </p>
 

@@ -3,6 +3,7 @@ export type MemberAccountStatus = "ACTIVE" | "SUSPENDED" | "PENDING";
 /** Row shape from `GET /members` (reconstructed from production bundle). */
 export interface MemberListRow {
   id?: string | number;
+  serialNo?: string | number;
   memberId?: string;
   fullName?: string;
   email?: string;
@@ -11,6 +12,7 @@ export interface MemberListRow {
   profileImage?: string;
   status?: MemberAccountStatus;
   role?: string;
+  type?: string;
   leg?: string;
   sponsorId?: string;
   placementPath?: string;
@@ -47,6 +49,7 @@ export interface MemberListRow {
     aadharCard?: { number?: string; image?: string };
     panCard?: { number?: string; image?: string };
     bankAccount?: { number?: string; image?: string };
+    qrCodeImage?: string;
   };
 }
 
@@ -63,8 +66,13 @@ export function normalizeMemberRow(raw: Record<string, unknown>): MemberListRow 
   const bv = raw.bv as MemberListRow["bv"];
   const wallet = raw.wallet as MemberListRow["wallet"];
   const kyc = raw.kyc as MemberListRow["kyc"];
+  if (kyc && !kyc.qrCodeImage) {
+    const qr = (raw.qrCodeImage ?? raw.qr_code_image) as string | undefined;
+    if (qr) kyc.qrCodeImage = qr;
+  }
   return {
     id: raw.id as string | number | undefined,
+    serialNo: (raw.serialNo ?? raw.serial_no) as string | number | undefined,
     memberId: (raw.memberId ?? raw.member_id) as string | undefined,
     fullName: (raw.fullName ?? raw.full_name ?? raw.name) as string | undefined,
     email: raw.email as string | undefined,
@@ -73,6 +81,7 @@ export function normalizeMemberRow(raw: Record<string, unknown>): MemberListRow 
     profileImage: (raw.profileImage ?? raw.profile_image) as string | undefined,
     status: raw.status as MemberListRow["status"],
     role: raw.role as string | undefined,
+    type: (raw.type ?? raw.type) as string | undefined,
     leg: raw.leg as string | undefined,
     sponsorId: (raw.sponsorId ?? raw.sponsor_id) as string | undefined,
     placementPath: (raw.placementPath ?? raw.placement_path) as string | undefined,

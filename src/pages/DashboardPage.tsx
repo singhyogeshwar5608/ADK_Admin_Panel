@@ -9,7 +9,22 @@ import {
 } from "@/utils/dashboardMath";
 import { parseApiError } from "@/utils/parseApiError";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Activity, ShoppingBag, TrendingUp, Users } from "lucide-react";
+import {
+  Activity,
+  Award,
+  Clock,
+  Crown,
+  DollarSign,
+  RefreshCcw,
+  ShoppingBag,
+  Split,
+  TrendingUp,
+  Trophy,
+  UserCheck,
+  UserX,
+  Users,
+  Wallet,
+} from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
@@ -142,36 +157,57 @@ export function DashboardPage() {
   const { totals: M, topMembers: rawTop } = reportQuery.data;
   const topList = rawTop ?? [];
 
+  const $ = (n: number | undefined | null, d = 0) => n ?? d;
+  const fmt = (n: number | undefined | null) =>
+    `₹${$(n).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+  const totalSales = $(M.totalSales);
+  const pct = (v: string) => Number(v) / 100;
+  const simPct = {
+    self: pct(sim.selfIncome),
+    sponsor: pct(sim.directIncome),
+    matching: pct(sim.matchingIncome),
+    selfRep: pct(sim.selfRepurchaseIncome),
+    repMatch: pct(sim.repurchaseMatchingIncome),
+    award: pct(sim.awardIncome),
+  };
+
+  const inactive = M.inactiveMembers ?? Math.max(0, $(M.totalMembers) - $(M.activeMembers));
+  const pending = M.pendingMembers ?? 0;
+  const selfPurchaseIncome = $(M.selfPurchaseIncome, totalSales * simPct.self);
+  const sponsorIncome = $(M.sponsorIncome, totalSales * simPct.sponsor);
+  const matchingIncome = $(M.matchingIncome, totalSales * simPct.matching);
+  const selfRepurchase = $(M.selfRepurchase, totalSales * simPct.selfRep);
+  const repurchaseMatching = $(M.repurchaseMatching, totalSales * simPct.repMatch);
+  const repurchaseAwards = $(M.repurchaseAwards, totalSales * simPct.award);
+  const tourRewards = $(M.tourRewards);
+  const royalty = $(M.royalty);
+  const totalIncome = $(M.totalIncome,
+    selfPurchaseIncome + sponsorIncome + matchingIncome + selfRepurchase +
+    repurchaseMatching + repurchaseAwards + tourRewards + royalty,
+  );
+
   const statCards = [
-    {
-      title: "Total Members",
-      value: M.totalMembers.toLocaleString(),
-      subtitle: `${M.activeMembers} active`,
-      icon: Users,
-    },
-    {
-      title: "Total Sales",
-      value: `₹${M.totalSales.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
-      subtitle: "Revenue last 30 days",
-      icon: TrendingUp,
-    },
-    {
-      title: "Total BV",
-      value: M.totalBv.toLocaleString(),
-      subtitle: "30-day volume",
-      icon: Activity,
-    },
-    {
-      title: "Orders Today",
-      value: M.todaysOrders.toString(),
-      subtitle: `${M.totalOrders} lifetime`,
-      icon: ShoppingBag,
-    },
+    { title: "Total Members", value: $(M.totalMembers).toLocaleString(), subtitle: `${$(M.activeMembers)} active`, icon: Users },
+    { title: "Inactive", value: inactive.toLocaleString(), subtitle: "Non-active members", icon: UserX },
+    { title: "Pending", value: pending.toLocaleString(), subtitle: "Awaiting approval", icon: Clock },
+    { title: "Total Sales", value: fmt(totalSales), subtitle: "Revenue last 30 days", icon: TrendingUp },
+    { title: "Total BV", value: $(M.totalBv).toLocaleString(), subtitle: "30-day volume", icon: Activity },
+    { title: "Orders Today", value: $(M.todaysOrders).toString(), subtitle: `${$(M.totalOrders)} lifetime`, icon: ShoppingBag },
+    { title: "Self Purchase Income", value: fmt(selfPurchaseIncome), subtitle: "Self purchase earnings", icon: DollarSign },
+    { title: "Sponsor Income", value: fmt(sponsorIncome), subtitle: "Direct sponsor earnings", icon: UserCheck },
+    { title: "Matching Income", value: fmt(matchingIncome), subtitle: "Binary matching earnings", icon: Split },
+    { title: "Self Re Purchase", value: fmt(selfRepurchase), subtitle: "Repurchase self earnings", icon: RefreshCcw },
+    { title: "Repurchase Matching", value: fmt(repurchaseMatching), subtitle: "Repurchase matching earnings", icon: Split },
+    { title: "Repurchase Awards", value: fmt(repurchaseAwards), subtitle: "Repurchase award earnings", icon: Award },
+    { title: "Tour Rewards", value: fmt(tourRewards), subtitle: "Tour reward earnings", icon: Trophy },
+    { title: "Royalty Income", value: fmt(royalty), subtitle: "Royalty earnings", icon: Crown },
+    { title: "Total Income", value: fmt(totalIncome), subtitle: "All income combined", icon: Wallet },
   ];
 
   return (
     <div className="space-y-8">
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-5">
         {statCards.map((c) => (
           <StatCard key={c.title} {...c} />
         ))}

@@ -16,7 +16,6 @@ export const NAV_ITEMS: NavItem[] = [
   { label: "Delivery Centers", path: "/delivery-centers", staff: true },
   { label: "Product Catalogue", path: "/catalogue", staff: true },
   { label: "Hero Slider", path: "/hero-slider", staff: true },
-  { label: "Event Media", path: "/event-media", staff: true },
   { label: "ADK Events", path: "/adk-events", staff: true },
   { label: "Media Links", path: "/social-links", staff: true },
   { label: "Binary Tree", path: "/binary-tree" },

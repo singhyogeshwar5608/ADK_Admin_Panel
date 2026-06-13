@@ -1,18 +1,40 @@
+import { mlmApi } from "@/api/mlm";
 import type { MemberListRow } from "@/types/memberList";
+import { useQuery } from "@tanstack/react-query";
 import { X } from "lucide-react";
 import { useId, type ReactNode } from "react";
-
-function str(v: unknown): string {
-  if (v == null) return "";
-  if (typeof v === "string") return v.trim();
-  if (typeof v === "number" && Number.isFinite(v)) return String(v);
-  return String(v);
-}
 
 function formatNum(n: unknown): string {
   if (typeof n !== "number" || !Number.isFinite(n)) return "—";
   return n.toLocaleString("en-IN", { maximumFractionDigits: 2 });
 }
+
+interface IncomeStats {
+  self_purchase: number;
+  sponsor_income: number;
+  matching_income: number;
+  self_repurchase: number;
+  repurchase_matching: number;
+  repurchase_awards: number;
+  tour_rewards: number;
+  royalty: number;
+}
+
+interface StatisticsResponse {
+  total_income?: IncomeStats;
+  [key: string]: unknown;
+}
+
+const INCOME_LABELS: { key: keyof IncomeStats; label: string }[] = [
+  { key: "self_purchase", label: "Self Purchase Income" },
+  { key: "sponsor_income", label: "Sponsor Income" },
+  { key: "matching_income", label: "Matching Income" },
+  { key: "self_repurchase", label: "Self Re-purchase Income" },
+  { key: "repurchase_matching", label: "Repurchase Matching Income" },
+  { key: "repurchase_awards", label: "Repurchase Awards" },
+  { key: "tour_rewards", label: "Tour Rewards" },
+  { key: "royalty", label: "Royalty Income" },
+];
 
 function formatDate(iso?: string): string {
   if (!iso?.trim()) return "—";
@@ -41,13 +63,34 @@ function DetailTile({ label, value }: { label: string; value: string }) {
   );
 }
 
+const COLORS: [string, string][] = [
+  ["border-blue-500", "bg-blue-50/40"],
+  ["border-purple-500", "bg-purple-50/40"],
+  ["border-emerald-500", "bg-emerald-50/40"],
+  ["border-orange-500", "bg-orange-50/40"],
+  ["border-pink-500", "bg-pink-50/40"],
+  ["border-cyan-500", "bg-cyan-50/40"],
+  ["border-indigo-500", "bg-indigo-50/40"],
+  ["border-amber-500", "bg-amber-50/40"],
+  ["border-teal-500", "bg-teal-50/40"],
+  ["border-rose-500", "bg-rose-50/40"],
+  ["border-violet-500", "bg-violet-50/40"],
+  ["border-lime-500", "bg-lime-50/40"],
+  ["border-sky-500", "bg-sky-50/40"],
+];
+
 /** `cols=3`: two columns on phone, three from `sm`. `cols=2`: two columns everywhere (shorter scroll on mobile). */
-function DetailGrid({ cols, children }: { cols: 2 | 3; children: ReactNode }) {
+function DetailGrid({ cols, children, colorIdx = 0 }: { cols: 2 | 3; children: ReactNode; colorIdx?: number }) {
+  const [border, bg] = COLORS[colorIdx % COLORS.length];
   const grid =
     cols === 3
       ? "grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3"
       : "grid grid-cols-2 gap-2 sm:gap-3 sm:gap-x-4";
-  return <div className={grid}>{children}</div>;
+  return (
+    <div className={`rounded-lg border-l-4 p-2 sm:rounded-xl sm:p-3 ${border} ${bg} dark:bg-opacity-10`}>
+      <div className={grid}>{children}</div>
+    </div>
+  );
 }
 
 export function MemberViewModal({
@@ -62,14 +105,23 @@ export function MemberViewModal({
   isLoading?: boolean;
 }) {
   const titleId = useId();
+
+  const incomeStatsQuery = useQuery({
+    queryKey: ["member-income-stats", member?.memberId],
+    queryFn: async () => {
+      const res = await mlmApi.statistics(member!.memberId!);
+      return res.data as StatisticsResponse;
+    },
+    enabled: open && !!member?.memberId,
+    staleTime: 30_000,
+  });
+
   if (!open) return null;
 
   const leftTeam = member?.stats?.leftTeam ?? 0;
   const rightTeam = member?.stats?.rightTeam ?? 0;
-  const leftBv = member?.stats?.leftBv ?? member?.bv?.leftLeg ?? 0;
-  const rightBv = member?.stats?.rightBv ?? member?.bv?.rightLeg ?? 0;
-  const leftChild = str(member?.stats?.leftChild);
-  const rightChild = str(member?.stats?.rightChild);
+
+  const incomeTotal = incomeStatsQuery.data?.total_income;
 
   return (
     <div
@@ -123,102 +175,193 @@ export function MemberViewModal({
                 </div>
               ) : null}
 
+              {/* Type badge */}
+              {member.type ? (
+                <div
+                  className={`mb-3 flex items-center gap-3 rounded-xl border-l-4 px-4 py-3 sm:mb-4 sm:px-5 sm:py-4 ${
+                    member.type === "LEADER"
+                      ? "border-amber-500 bg-gradient-to-r from-amber-50 to-amber-100/60 dark:from-amber-950/30 dark:to-amber-900/20"
+                      : "border-slate-400 bg-gradient-to-r from-slate-50 to-slate-100/60 dark:from-slate-900/30 dark:to-slate-800/20"
+                  }`}
+                >
+                  <span
+                    className={`flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold sm:h-10 sm:w-10 sm:text-sm ${
+                      member.type === "LEADER"
+                        ? "bg-amber-500 text-white"
+                        : "bg-slate-400 text-white"
+                    }`}
+                  >
+                    {member.type === "LEADER" ? "L" : "U"}
+                  </span>
+                  <div className="flex-1">
+                    <p
+                      className={`text-sm font-bold tracking-wide sm:text-base ${
+                        member.type === "LEADER" ? "text-amber-700 dark:text-amber-400" : "text-slate-600 dark:text-slate-300"
+                      }`}
+                    >
+                      {member.type === "LEADER" ? "LEADER" : "USER"}
+                    </p>
+                    <p className="text-[10px] text-slate-500 sm:text-xs dark:text-slate-400">
+                      {member.type === "LEADER"
+                        ? "This person is a leader in the organization"
+                        : "This person is a regular user"}
+                    </p>
+                  </div>
+                  <span
+                    className={`rounded-full px-3 py-1 text-[10px] font-semibold uppercase tracking-wider sm:px-4 sm:text-xs ${
+                      member.type === "LEADER"
+                        ? "bg-amber-500/10 text-amber-600 dark:text-amber-400"
+                        : "bg-slate-300/50 text-slate-500 dark:bg-white/10 dark:text-slate-400"
+                    }`}
+                  >
+                    {member.type === "LEADER" ? "Leader" : "User"}
+                  </span>
+                </div>
+              ) : null}
+
+              {/* Status badge */}
+              {member.status ? (
+                <div
+                  className={`mb-3 flex items-center gap-3 rounded-xl border-l-4 px-4 py-3 sm:mb-4 sm:px-5 sm:py-4 ${
+                    member.status === "ACTIVE"
+                      ? "border-emerald-500 bg-gradient-to-r from-emerald-50 to-emerald-100/60 dark:from-emerald-950/30 dark:to-emerald-900/20"
+                      : member.status === "PENDING"
+                        ? "border-amber-500 bg-gradient-to-r from-amber-50 to-amber-100/60 dark:from-amber-950/30 dark:to-amber-900/20"
+                        : "border-rose-500 bg-gradient-to-r from-rose-50 to-rose-100/60 dark:from-rose-950/30 dark:to-rose-900/20"
+                  }`}
+                >
+                  <span
+                    className={`flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold sm:h-10 sm:w-10 sm:text-sm ${
+                      member.status === "ACTIVE"
+                        ? "bg-emerald-500 text-white"
+                        : member.status === "PENDING"
+                          ? "bg-amber-500 text-white"
+                          : "bg-rose-500 text-white"
+                    }`}
+                  >
+                    {member.status === "ACTIVE" ? "A" : member.status === "PENDING" ? "P" : "S"}
+                  </span>
+                  <div className="flex-1">
+                    <p
+                      className={`text-sm font-bold tracking-wide sm:text-base ${
+                        member.status === "ACTIVE"
+                          ? "text-emerald-700 dark:text-emerald-400"
+                          : member.status === "PENDING"
+                            ? "text-amber-700 dark:text-amber-400"
+                            : "text-rose-700 dark:text-rose-400"
+                      }`}
+                    >
+                      {member.status === "ACTIVE" ? "APPROVED" : member.status}
+                    </p>
+                    <p className="text-[10px] text-slate-500 sm:text-xs dark:text-slate-400">
+                      {member.status === "ACTIVE"
+                        ? "This member is approved and active"
+                        : member.status === "PENDING"
+                          ? "This member is pending approval"
+                          : "This member is suspended"}
+                    </p>
+                  </div>
+                  <span
+                    className={`rounded-full px-3 py-1 text-[10px] font-semibold uppercase tracking-wider sm:px-4 sm:text-xs ${
+                      member.status === "ACTIVE"
+                        ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                        : member.status === "PENDING"
+                          ? "bg-amber-500/10 text-amber-600 dark:text-amber-400"
+                          : "bg-rose-500/10 text-rose-600 dark:text-rose-400"
+                    }`}
+                  >
+                    {member.status === "ACTIVE" ? "Active" : member.status === "PENDING" ? "Pending" : "Suspended"}
+                  </span>
+                </div>
+              ) : null}
+
               <div className="space-y-2 sm:space-y-4">
-                <DetailGrid cols={3}>
-                  <DetailTile label="Database ID" value={member.id != null ? String(member.id) : ""} />
+                <DetailGrid cols={3} colorIdx={0}>
+                  <DetailTile label="Serial No." value={member.serialNo != null ? String(member.serialNo) : "—"} />
                   <DetailTile label="Member ID" value={member.memberId || "—"} />
                   <DetailTile label="Depth" value={member.depth != null ? String(member.depth) : "—"} />
                 </DetailGrid>
 
-                <DetailGrid cols={2}>
+                <DetailGrid cols={2} colorIdx={1}>
                   <DetailTile label="Full name" value={member.fullName || "—"} />
                   <DetailTile label="Email" value={member.email || "—"} />
                   <DetailTile label="Phone" value={member.phone || "—"} />
+                  <DetailTile label="Address" value={member.address || "—"} />
                   <DetailTile label="Sponsor member ID" value={member.sponsorId || "—"} />
                 </DetailGrid>
 
-                <DetailGrid cols={3}>
-                  <DetailTile label="Status" value={member.status || "—"} />
+                <DetailGrid cols={3} colorIdx={2}>
                   <DetailTile label="Role" value={member.role || "—"} />
                   <DetailTile label="Leg" value={member.leg || "—"} />
                 </DetailGrid>
 
-                <DetailGrid cols={2}>
+                <DetailGrid cols={2} colorIdx={3}>
                   <DetailTile label="Joined" value={formatDate(member.createdAt)} />
                   <DetailTile label="Last login" value={formatDate(member.stats?.lastLoginAt)} />
                 </DetailGrid>
 
-                <DetailGrid cols={3}>
-                  <DetailTile label="Total BV" value={formatNum(member.bv?.total)} />
-                  <DetailTile label="Left leg BV" value={formatNum(leftBv)} />
-                  <DetailTile label="Right leg BV" value={formatNum(rightBv)} />
-                </DetailGrid>
+                <div className="rounded-lg border-l-4 border-pink-500 bg-pink-50/40 p-2 sm:rounded-xl sm:p-3 dark:bg-opacity-10">
+                  <p className="mb-1.5 text-[9px] font-semibold uppercase tracking-[0.28em] text-pink-600 sm:mb-2 sm:text-[11px] sm:tracking-[0.35em] dark:text-pink-400">
+                    Income Breakdown
+                  </p>
+                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-3">
+                    {incomeStatsQuery.isLoading
+                      ? Array.from({ length: 8 }).map((_, i) => (
+                          <div
+                            key={i}
+                            className="animate-pulse rounded-lg border border-slate-100 bg-slate-50/90 px-2 py-1.5 sm:rounded-xl sm:px-3 sm:py-2.5 dark:border-white/10 dark:bg-slate-900/40"
+                          >
+                            <div className="mb-1 h-2 w-3/4 rounded bg-slate-200 dark:bg-white/10" />
+                            <div className="h-3 w-1/2 rounded bg-slate-200 dark:bg-white/10" />
+                          </div>
+                        ))
+                      : INCOME_LABELS.map(({ key, label }) => (
+                          <DetailTile
+                            key={key}
+                            label={label}
+                            value={formatNum(incomeTotal?.[key])}
+                          />
+                        ))}
+                  </div>
+                </div>
 
-                <DetailGrid cols={3}>
+                <DetailGrid cols={2} colorIdx={5}>
                   <DetailTile label="Carry FWD L" value={formatNum(member.bv?.carryForwardLeft)} />
                   <DetailTile label="Carry FWD R" value={formatNum(member.bv?.carryForwardRight)} />
-                  <DetailTile label="Total team BV" value={formatNum(member.stats?.totalTeamBV)} />
                 </DetailGrid>
 
-                <DetailGrid cols={3}>
+                <DetailGrid cols={3} colorIdx={6}>
               <DetailTile label="Left team" value={String(leftTeam)} />
               <DetailTile label="Right team" value={String(rightTeam)} />
               <DetailTile label="Team size" value={String(member.stats?.teamSize ?? "—")} />
             </DetailGrid>
 
-                <DetailGrid cols={2}>
-                  <DetailTile label="Direct refs" value={String(member.stats?.directRefs ?? "—")} />
+                <DetailGrid cols={2} colorIdx={7}>
+                  <DetailTile label="Sponsor" value={String(member.stats?.directRefs ?? "—")} />
                   <DetailTile label="Last updated" value={formatDate(member.updatedAt)} />
                 </DetailGrid>
 
-                <DetailGrid cols={2}>
-                  <DetailTile label="Left child ID" value={leftChild || "—"} />
-                  <DetailTile label="Right child ID" value={rightChild || "—"} />
-                </DetailGrid>
-
-                <DetailGrid cols={3}>
+                <DetailGrid cols={3} colorIdx={8}>
                   <DetailTile label="Wallet balance" value={formatNum(member.wallet?.balance)} />
                   <DetailTile label="Wallet total earned" value={formatNum(member.wallet?.totalEarned)} />
                   <DetailTile label="Weekly Income" value={formatNum(member.wallet?.weeklyIncome)} />
                 </DetailGrid>
 
-                <DetailGrid cols={2}>
+                <DetailGrid cols={2} colorIdx={9}>
               <DetailTile label="Total Matched BV" value={formatNum(member.wallet?.totalMatchedBv)} />
               <DetailTile label="KYC status" value={member.kyc?.status || "—"} />
             </DetailGrid>
 
-            <DetailGrid cols={2}>
+            <DetailGrid cols={2} colorIdx={10}>
               <DetailTile label="Aadhar" value={member.kyc?.aadharCard?.number || "—"} />
               <DetailTile label="PAN" value={member.kyc?.panCard?.number || "—"} />
             </DetailGrid>
 
-            <DetailGrid cols={2}>
+            <DetailGrid cols={2} colorIdx={11}>
               <DetailTile label="Bank Account" value={member.kyc?.bankAccount?.number || "—"} />
               <DetailTile label="Last updated" value={formatDate(member.updatedAt)} />
             </DetailGrid>
           </div>
-
-              {member.placementPath ? (
-                <div className="mt-2 rounded-lg border border-slate-100 bg-slate-50/90 px-2 py-1.5 sm:mt-4 sm:rounded-xl sm:px-3 sm:py-2.5 dark:border-white/10 dark:bg-slate-900/40">
-                  <p className="text-[8px] font-semibold uppercase tracking-wide text-slate-500 sm:text-[10px] dark:text-slate-400">
-                    Placement path
-                  </p>
-                  <p className="mt-0.5 break-all font-mono text-[10px] font-medium leading-snug text-slate-800 sm:mt-1 sm:text-xs dark:text-slate-200">
-                    {member.placementPath}
-                  </p>
-                </div>
-              ) : null}
-
-              {member.address ? (
-                <div className="mt-2 rounded-lg border border-slate-100 bg-slate-50/90 px-2 py-1.5 sm:mt-4 sm:rounded-xl sm:px-3 sm:py-2.5 dark:border-white/10 dark:bg-slate-900/40">
-                  <p className="text-[8px] font-semibold uppercase tracking-wide text-slate-500 sm:text-[10px] dark:text-slate-400">
-                    Address
-                  </p>
-                  <p className="mt-0.5 whitespace-pre-wrap text-[11px] font-medium leading-snug text-slate-800 sm:mt-1 sm:text-sm dark:text-slate-200">
-                    {member.address}
-                  </p>
-                </div>
-              ) : null}
             </>
           )}
         </div>

@@ -7,7 +7,6 @@ import { CataloguePage } from "@/pages/CataloguePage";
 import { CategoriesPage } from "@/pages/CategoriesPage";
 import { DashboardPage } from "@/pages/DashboardPage";
 import { DeliveryCentersPage } from "@/pages/DeliveryCentersPage";
-import { EventMediaPage } from "@/pages/EventMediaPage";
 import { HeroSliderPage } from "@/pages/HeroSliderPage";
 import { HomeRedirect } from "@/pages/HomeRedirect";
 import { LoginPage } from "@/pages/LoginPage";
@@ -31,7 +30,6 @@ export default function App() {
           <Route path="/delivery-centers" element={<DeliveryCentersPage />} />
           <Route path="/catalogue" element={<CataloguePage />} />
           <Route path="/hero-slider" element={<HeroSliderPage />} />
-          <Route path="/event-media" element={<EventMediaPage />} />
           <Route path="/adk-events" element={<AdkEventsPage />} />
           <Route path="/social-links" element={<SocialLinksPage />} />
           <Route element={<RequireAdmin />}>

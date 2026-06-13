@@ -1,10 +1,21 @@
 export interface DashboardTotals {
   totalMembers: number;
   activeMembers: number;
+  inactiveMembers: number;
+  pendingMembers: number;
   totalOrders: number;
   todaysOrders: number;
   totalSales: number;
   totalBv: number;
+  selfPurchaseIncome: number;
+  sponsorIncome: number;
+  matchingIncome: number;
+  selfRepurchase: number;
+  repurchaseMatching: number;
+  repurchaseAwards: number;
+  tourRewards: number;
+  royalty: number;
+  totalIncome: number;
 }
 
 export interface TopMember {

@@ -5,7 +5,7 @@ import { parseApiError } from "@/utils/parseApiError";
 import { resolveMediaUrl } from "@/utils/resolveMediaUrl";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Upload, X } from "lucide-react";
-import { useCallback, useEffect, useId, useState } from "react";
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
 const PACK_UNITS = [
@@ -104,6 +104,7 @@ function apiProductToFormState(p: Record<string, unknown>): ProductFormState {
     sgst: numToInputStr(p.sgst ?? p.SGST ?? p.sgst_rate ?? 0),
     cgst: numToInputStr(p.cgst ?? p.CGST ?? p.cgst_rate ?? 0),
     igst: numToInputStr(p.igst ?? p.IGST ?? p.igst_rate ?? 0),
+    hsn: String(p.hsnCode ?? p.hsn_code ?? "").trim(),
     categoryId,
     description: String(p.description ?? ""),
     imageUrls: (() => {
@@ -172,12 +173,11 @@ function parseCategories(payload: unknown): CategoryOption[] {
   const seen = new Set<string>();
   return rows
     .map((r) => {
-      const label = String(r.name ?? r.title ?? r.slug ?? r.id ?? r._id ?? "");
+      const label = String(r.name ?? r.title ?? r.slug ?? "");
+      const id = String(r.id ?? r._id ?? label);
       if (!label || seen.has(label)) return null;
       seen.add(label);
-      // We use the label (name) as the ID because the user wants to save category names 
-      // in the database instead of numeric IDs.
-      return { id: label, label };
+      return { id, label };
     })
     .filter(Boolean) as CategoryOption[];
 }
@@ -196,6 +196,7 @@ type ProductFormState = {
   sgst: string;
   cgst: string;
   igst: string;
+  hsn: string;
   categoryId: string;
   description: string;
   imageUrls: string[];
@@ -219,6 +220,7 @@ const emptyForm = (): ProductFormState => ({
   sgst: "",
   cgst: "",
   igst: "",
+  hsn: "",
   categoryId: "",
   description: "",
   imageUrls: [],
@@ -249,7 +251,7 @@ export function AddProductModal({
     queryFn: async () => (await categoriesApi.list()).data,
     enabled: open,
   });
-  const categories = parseCategories(catQ.data);
+  const categories = useMemo(() => parseCategories(catQ.data), [catQ.data]);
 
   const detailQ = useQuery({
     queryKey: ["product", editProductId],
@@ -257,16 +259,27 @@ export function AddProductModal({
     enabled: open && isEdit,
   });
 
+  const formInitialized = useRef(false);
+
   useEffect(() => {
-    if (!open) return;
+    if (!open) {
+      formInitialized.current = false;
+      return;
+    }
     if (!isEdit) setForm(emptyForm());
   }, [open, isEdit]);
 
   useEffect(() => {
-    if (!open || !isEdit) return;
+    if (!open || !isEdit || !detailQ.data || formInitialized.current) return;
     const rec = extractProductRecord(detailQ.data);
-    if (rec) setForm(apiProductToFormState(rec));
-  }, [open, isEdit, detailQ.data]);
+    if (rec) {
+      const fs = apiProductToFormState(rec);
+      const match = categories.find((c) => c.label === fs.categoryId);
+      if (match) fs.categoryId = match.id;
+      setForm(fs);
+      formInitialized.current = true;
+    }
+  }, [open, isEdit, detailQ.data, categories]);
 
 
   const create = useMutation({
@@ -444,6 +457,7 @@ export function AddProductModal({
       sgst: sgstN,
       cgst: cgstN,
       igst: igstN,
+      hsn_code: form.hsn.trim() || null,
       categories: form.categoryId.trim() ? [form.categoryId.trim()] : [],
       images,
       is_active: form.isActive,
@@ -613,6 +627,17 @@ export function AddProductModal({
                     />
                   </label>
                 </div>
+                <label className="block sm:col-span-2">
+                  <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                    HSN Code
+                  </span>
+                  <input
+                    placeholder="e.g. 300490"
+                    value={form.hsn}
+                    onChange={(e) => setForm((f) => ({ ...f, hsn: e.target.value }))}
+                    className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs text-slate-900 outline-none placeholder:text-slate-400 focus:border-primary focus:ring-2 focus:ring-primary/20 dark:border-white/10 dark:bg-slate-900 dark:text-white"
+                  />
+                </label>
                 <div className="block sm:col-span-2">
                   <label className="flex items-center gap-2 cursor-pointer">
                     <input

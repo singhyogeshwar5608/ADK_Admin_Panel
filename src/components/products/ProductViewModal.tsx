@@ -117,6 +117,7 @@ export function ProductViewModal({
             <DetailTile label="SGST (%)" value={sgst} />
             <DetailTile label="CGST (%)" value={cgst} />
             <DetailTile label="IGST (%)" value={igst} />
+            <DetailTile label="HSN Code" value={product.hsn || "—"} />
             <DetailTile
               label="Sale price"
               value={formatRupee(Number.isFinite(product.sale) ? product.sale : product.mrp)}

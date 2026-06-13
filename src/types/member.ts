@@ -1,8 +1,10 @@
 export type MemberRole = "ADMIN" | "MEMBER";
+export type MemberType = "LEADER" | "USER";
 
 export interface Member {
   id: number | string;
   role: MemberRole;
+  type?: MemberType;
   email?: string;
   name?: string;
   member_id?: string;

@@ -1,5 +1,6 @@
 import { membersApi } from "@/api/members";
 import type { MemberAccountStatus } from "@/types/memberList";
+import type { MemberType } from "@/types/member";
 import { parseApiError } from "@/utils/parseApiError";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Eye, EyeOff } from "lucide-react";
@@ -25,6 +26,15 @@ type FormState = {
   leg: Leg;
   profileImage: string;
   status: MemberAccountStatus;
+  type: MemberType;
+  // KYC fields
+  kycBankAccountNumber: string;
+  kycBankAccountImage: string;
+  kycPanNumber: string;
+  kycPanImage: string;
+  kycAadharNumber: string;
+  kycAadharImage: string;
+  kycQrCodeImage: string;
 };
 
 const initialForm: FormState = {
@@ -36,7 +46,15 @@ const initialForm: FormState = {
   sponsorId: "",
   leg: "LEFT",
   profileImage: "",
-  status: "ACTIVE",
+  status: "PENDING",
+  type: "USER",
+  kycBankAccountNumber: "",
+  kycBankAccountImage: "",
+  kycPanNumber: "",
+  kycPanImage: "",
+  kycAadharNumber: "",
+  kycAadharImage: "",
+  kycQrCodeImage: "",
 };
 
 type Errors = Partial<Record<keyof FormState | "submit", string>>;
@@ -46,6 +64,62 @@ function normalizePhone(raw: string): string {
   if (digits.startsWith("91")) digits = digits.slice(2);
   digits = digits.slice(0, 10);
   return "+91" + digits;
+}
+
+function KycImageUpload({
+  label,
+  value,
+  isPending,
+  onUpload,
+  onRemove,
+}: {
+  label: string;
+  value: string;
+  isPending: boolean;
+  onUpload: (file: File) => void;
+  onRemove: () => void;
+}) {
+  const ref = useRef<HTMLInputElement>(null);
+  return (
+    <div>
+      <label className="mb-1 block text-xs font-semibold text-slate-500 dark:text-slate-400">{label}</label>
+      <div className="flex items-center gap-3">
+        <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-slate-200 bg-slate-100 text-[8px] text-slate-400 dark:border-white/10 dark:bg-white/5">
+          {value ? <img src={value} alt="" className="h-full w-full object-cover" /> : "No img"}
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <button
+            type="button"
+            disabled={isPending}
+            onClick={() => ref.current?.click()}
+            className="inline-flex items-center justify-center rounded-xl border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 transition hover:border-primary hover:text-primary disabled:opacity-50 dark:border-white/10 dark:text-white dark:hover:border-primary dark:hover:text-primary"
+          >
+            {isPending ? "Uploading…" : "Upload"}
+          </button>
+          {value ? (
+            <button
+              type="button"
+              className="text-left text-[10px] font-semibold text-rose-500 hover:text-rose-600"
+              onClick={onRemove}
+            >
+              Remove
+            </button>
+          ) : null}
+        </div>
+      </div>
+      <input
+        ref={ref}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          if (f) onUpload(f);
+          e.target.value = "";
+        }}
+      />
+    </div>
+  );
 }
 
 function validateCreate(f: FormState): Errors {
@@ -130,6 +204,12 @@ function memberRecordToForm(m: Record<string, unknown>): FormState {
   const status: MemberAccountStatus =
     st === "SUSPENDED" || st === "PENDING" ? (st as MemberAccountStatus) : "ACTIVE";
   const phoneRaw = String(m.phone ?? "+91");
+  const kyc = (m.kyc ?? {}) as Record<string, unknown>;
+  const ba = (kyc.bankAccount ?? {}) as Record<string, unknown>;
+  const pan = (kyc.panCard ?? {}) as Record<string, unknown>;
+  const aadhar = (kyc.aadharCard ?? {}) as Record<string, unknown>;
+  // qrCodeImage is returned at top-level by Member->toArray() AND may also be inside kyc object
+  const qrCodeImage = String((m.qrCodeImage ?? m.qr_code_image ?? kyc.qrCodeImage ?? ""));
   return {
     fullName: String(m.fullName ?? ""),
     email: String(m.email ?? ""),
@@ -140,6 +220,14 @@ function memberRecordToForm(m: Record<string, unknown>): FormState {
     leg,
     profileImage: String(m.profileImage ?? ""),
     status,
+    type: (String(m.type ?? "USER").toUpperCase() === "LEADER" ? "LEADER" : "USER") as MemberType,
+    kycBankAccountNumber: String(ba.number ?? ""),
+    kycBankAccountImage: String(ba.image ?? ""),
+    kycPanNumber: String(pan.number ?? ""),
+    kycPanImage: String(pan.image ?? ""),
+    kycAadharNumber: String(aadhar.number ?? ""),
+    kycAadharImage: String(aadhar.image ?? ""),
+    kycQrCodeImage: qrCodeImage,
   };
 }
 
@@ -179,6 +267,18 @@ export function CreateMemberModal({
     onError: (err: unknown) => toast.error(parseApiError(err)),
   });
 
+  const kycUploadMut = useMutation({
+    mutationFn: ({ file, field }: { file: File; field: keyof Pick<FormState, "kycBankAccountImage" | "kycPanImage" | "kycAadharImage" | "kycQrCodeImage"> }) =>
+      membersApi.uploadKycDoc(file).then((url) => ({ url, field })),
+    onSuccess: ({ url, field }) => {
+      if (url) {
+        setForm((prev) => ({ ...prev, [field]: url }));
+        toast.success("Document uploaded");
+      }
+    },
+    onError: (err: unknown) => toast.error(parseApiError(err)),
+  });
+
   const updateMut = useMutation({
     mutationFn: (vars: { id: string | number; payload: Record<string, unknown> }) =>
       membersApi.patch(vars.id, vars.payload),
@@ -193,16 +293,7 @@ export function CreateMemberModal({
   });
 
   const createMut = useMutation({
-    mutationFn: (payload: {
-      fullName: string;
-      email?: string;
-      password: string;
-      phone?: string;
-      address: string;
-      sponsorId: string;
-      leg: Leg;
-      profileImage?: string;
-    }) => membersApi.create(payload),
+    mutationFn: (payload: Record<string, unknown>) => membersApi.create(payload),
     onSuccess: async (_, vars) => {
       toast.success(`${vars.fullName} added successfully`);
       await qc.invalidateQueries({ queryKey: ["members"] });
@@ -255,7 +346,7 @@ export function CreateMemberModal({
 
   const detailLoading = isEdit && (detailQ.isLoading || detailQ.isFetching);
   const detailError = isEdit && detailQ.isError;
-  const pending = createMut.isPending || updateMut.isPending || uploadMut.isPending;
+  const pending = createMut.isPending || updateMut.isPending || uploadMut.isPending || kycUploadMut.isPending;
 
   const update = (key: keyof FormState, value: string) => {
     setForm((prev) => {
@@ -273,17 +364,30 @@ export function CreateMemberModal({
     if (Object.keys(err).length > 0) return;
 
     if (isEdit && editMemberId != null) {
-      updateMut.mutate({
-        id: editMemberId,
-        payload: {
-          full_name: canon.fullName.trim(),
-          email: canon.email.trim().toLowerCase(),
-          phone: canon.phone.trim(),
-          status: canon.status,
-          leg: canon.leg,
-          profile_image: canon.profileImage.trim() || null,
-        },
-      });
+      const editPayload: Record<string, unknown> = {
+        full_name: canon.fullName.trim(),
+        email: canon.email.trim().toLowerCase(),
+        phone: canon.phone.trim(),
+        status: canon.status,
+        leg: canon.leg,
+        type: canon.type,
+        profile_image: canon.profileImage.trim() || null,
+          address: canon.address.trim() || null,
+          // KYC fields
+          bankAccountNumber: canon.kycBankAccountNumber.trim() || null,
+          bankAccountImage: canon.kycBankAccountImage.trim() || null,
+          panNumber: canon.kycPanNumber.trim() || null,
+          panImage: canon.kycPanImage.trim() || null,
+          aadharNumber: canon.kycAadharNumber.trim() || null,
+          aadharImage: canon.kycAadharImage.trim() || null,
+          qrCodeImage: canon.kycQrCodeImage.trim() || null,
+        };
+
+        if (canon.password.trim()) {
+          editPayload.password = canon.password.trim();
+        }
+
+        updateMut.mutate({ id: editMemberId, payload: editPayload });
     } else {
       const digits = canon.phone.replace(/^\+91/, "");
       const phonePayload =
@@ -301,7 +405,17 @@ export function CreateMemberModal({
         address: canon.address.trim(),
         sponsorId: canon.sponsorId.trim(),
         leg: canon.leg,
+        type: canon.type,
+        status: canon.status,
         profileImage: canon.profileImage.trim() || undefined,
+        // KYC fields
+        bankAccountNumber: canon.kycBankAccountNumber.trim() || undefined,
+        bankAccountImage: canon.kycBankAccountImage.trim() || undefined,
+        panNumber: canon.kycPanNumber.trim() || undefined,
+        panImage: canon.kycPanImage.trim() || undefined,
+        aadharNumber: canon.kycAadharNumber.trim() || undefined,
+        aadharImage: canon.kycAadharImage.trim() || undefined,
+        qrCodeImage: canon.kycQrCodeImage.trim() || undefined,
       });
     }
   };
@@ -448,6 +562,36 @@ export function CreateMemberModal({
             }}
           />
 
+          {/* Type toggle */}
+          <div className="flex items-center justify-between rounded-2xl border border-slate-100 bg-white/40 px-4 py-3 dark:border-white/10 dark:bg-white/5">
+            <div>
+              <p className="text-xs font-semibold text-slate-600 dark:text-slate-300">Leader</p>
+              <p className="text-[10px] text-slate-400 dark:text-slate-500">
+                {form.type === "LEADER" ? "This person is a leader" : "This person is a regular user"}
+              </p>
+            </div>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={form.type === "LEADER"}
+              onClick={() =>
+                setForm((prev) => ({
+                  ...prev,
+                  type: prev.type === "LEADER" ? "USER" : "LEADER",
+                }))
+              }
+              className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full transition-colors ${
+                form.type === "LEADER" ? "bg-amber-500" : "bg-slate-300 dark:bg-slate-600"
+              }`}
+            >
+              <span
+                className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-sm transition-transform ${
+                  form.type === "LEADER" ? "translate-x-[22px]" : "translate-x-[2px]"
+                }`}
+              />
+            </button>
+          </div>
+
           {/* Main grid */}
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div>
@@ -473,47 +617,48 @@ export function CreateMemberModal({
               />
               {errors.email ? <p className="mt-1 text-xs text-rose-500">{errors.email}</p> : null}
             </div>
-            {!isEdit ? (
-              <div>
-                <label className="mb-1 block text-xs font-semibold text-slate-500 dark:text-slate-400">Password</label>
-                <div className="relative">
-                  <input
-                    type={showPassword ? "text" : "password"}
-                    autoComplete="new-password"
-                    value={form.password}
-                    onChange={(e) => update("password", e.target.value)}
-                    className="w-full rounded-2xl border border-slate-200 bg-transparent py-2.5 pl-4 pr-12 text-sm text-slate-900 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 dark:border-white/10 dark:text-white"
-                  />
-                  <button
-                    type="button"
-                    tabIndex={-1}
-                    onClick={() => setShowPassword((v: boolean) => !v)}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 rounded-xl p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-white/10 dark:hover:text-white"
-                    aria-label={showPassword ? "Hide password" : "Show password"}
-                  >
-                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  </button>
-                </div>
-                {errors.password ? <p className="mt-1 text-xs text-rose-500">{errors.password}</p> : null}
-              </div>
-            ) : (
-              <div>
-                <label className="mb-1 block text-xs font-semibold text-slate-500 dark:text-slate-400">
-                  Account status
-                </label>
-                <select
-                  value={form.status}
-                  onChange={(e) =>
-                    setForm((prev) => ({ ...prev, status: e.target.value as MemberAccountStatus }))
-                  }
-                  className="w-full rounded-2xl border border-slate-200 bg-transparent px-4 py-2.5 text-sm text-slate-900 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 dark:border-white/10 dark:text-white"
+            <div>
+              <label className="mb-1 block text-xs font-semibold text-slate-500 dark:text-slate-400">
+                Password{isEdit ? " (leave blank to keep current)" : ""}
+              </label>
+              <div className="relative">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  autoComplete="new-password"
+                  value={form.password}
+                  onChange={(e) => update("password", e.target.value)}
+                  className="w-full rounded-2xl border border-slate-200 bg-transparent py-2.5 pl-4 pr-12 text-sm text-slate-900 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 dark:border-white/10 dark:text-white"
+                />
+                <button
+                  type="button"
+                  tabIndex={-1}
+                  onClick={() => setShowPassword((v: boolean) => !v)}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 rounded-xl p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-white/10 dark:hover:text-white"
+                  aria-label={showPassword ? "Hide password" : "Show password"}
                 >
-                  <option value="ACTIVE">Active</option>
-                  <option value="SUSPENDED">Suspended</option>
-                  <option value="PENDING">Pending</option>
-                </select>
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
               </div>
-            )}
+              {errors.password ? <p className="mt-1 text-xs text-rose-500">{errors.password}</p> : null}
+            </div>
+            {isEdit ? (
+            <div>
+              <label className="mb-1 block text-xs font-semibold text-slate-500 dark:text-slate-400">
+                Account status
+              </label>
+              <select
+                value={form.status}
+                onChange={(e) =>
+                  setForm((prev) => ({ ...prev, status: e.target.value as MemberAccountStatus }))
+                }
+                className="w-full rounded-2xl border border-slate-200 bg-transparent px-4 py-2.5 text-sm text-slate-900 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 dark:border-white/10 dark:text-white"
+              >
+                <option value="ACTIVE">Active</option>
+                <option value="SUSPENDED">Suspended</option>
+                <option value="PENDING">Pending</option>
+              </select>
+            </div>
+            ) : null}
             <div>
               <label className="mb-1 block text-xs font-semibold text-slate-500 dark:text-slate-400">
                 Phone{isTreeRegister ? " (optional)" : ""}
@@ -536,13 +681,9 @@ export function CreateMemberModal({
                 onChange={(e) => update("address", e.target.value)}
                 rows={3}
                 placeholder={isTreeRegister ? "Enter full address" : "Enter complete address"}
-                readOnly={isEdit}
-                disabled={isEdit}
-                className="w-full resize-none rounded-2xl border border-slate-200 bg-transparent px-4 py-2.5 text-sm text-slate-900 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:cursor-not-allowed disabled:opacity-70 dark:border-white/10 dark:text-white"
+                className="w-full resize-none rounded-2xl border border-slate-200 bg-transparent px-4 py-2.5 text-sm text-slate-900 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 dark:border-white/10 dark:text-white"
               />
-              {isEdit ? (
-                <p className="mt-1 text-xs text-slate-400">Address is not editable from the admin form.</p>
-              ) : errors.address ? (
+              {errors.address ? (
                 <p className="mt-1 text-xs text-rose-500">{errors.address}</p>
               ) : null}
             </div>
@@ -588,6 +729,46 @@ export function CreateMemberModal({
                     : "Preferred side for placement. If that side (and the other) are already taken on the sponsor, the next free binary slot is used further down the tree—expand nodes on Binary Tree to find them."}
                 </p>
                 {errors.leg ? <p className="mt-1 text-xs text-rose-500">{errors.leg}</p> : null}
+              </div>
+            </div>
+          ) : null}
+
+          {/* ── KYC section (edit only) ── */}
+          {isEdit ? (
+          <div className="space-y-4 rounded-2xl border border-slate-100 bg-white/40 p-4 dark:border-white/10 dark:bg-white/5">
+              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-400">KYC Documents</p>
+
+              {/* Bank Account */}
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                <div>
+                  <label className="mb-1 block text-xs font-semibold text-slate-500 dark:text-slate-400">Bank Account Number</label>
+                  <input type="text" value={form.kycBankAccountNumber} onChange={(e) => update("kycBankAccountNumber", e.target.value)} placeholder="Enter bank account number" className="w-full rounded-2xl border border-slate-200 bg-transparent px-4 py-2.5 text-sm text-slate-900 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 dark:border-white/10 dark:text-white" />
+                </div>
+                <KycImageUpload label="Passbook Image" value={form.kycBankAccountImage} isPending={kycUploadMut.isPending} onUpload={(f) => kycUploadMut.mutate({ file: f, field: "kycBankAccountImage" })} onRemove={() => update("kycBankAccountImage", "")} />
+              </div>
+
+              {/* PAN */}
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                <div>
+                  <label className="mb-1 block text-xs font-semibold text-slate-500 dark:text-slate-400">PAN Number</label>
+                  <input type="text" value={form.kycPanNumber} onChange={(e) => update("kycPanNumber", e.target.value)} placeholder="Enter PAN number" className="w-full rounded-2xl border border-slate-200 bg-transparent px-4 py-2.5 text-sm text-slate-900 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 dark:border-white/10 dark:text-white" />
+                </div>
+                <KycImageUpload label="PAN Image" value={form.kycPanImage} isPending={kycUploadMut.isPending} onUpload={(f) => kycUploadMut.mutate({ file: f, field: "kycPanImage" })} onRemove={() => update("kycPanImage", "")} />
+              </div>
+
+              {/* Aadhar */}
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                <div>
+                  <label className="mb-1 block text-xs font-semibold text-slate-500 dark:text-slate-400">Aadhar Number</label>
+                  <input type="text" value={form.kycAadharNumber} onChange={(e) => update("kycAadharNumber", e.target.value)} placeholder="Enter Aadhar number" className="w-full rounded-2xl border border-slate-200 bg-transparent px-4 py-2.5 text-sm text-slate-900 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 dark:border-white/10 dark:text-white" />
+                </div>
+                <KycImageUpload label="Aadhar Image" value={form.kycAadharImage} isPending={kycUploadMut.isPending} onUpload={(f) => kycUploadMut.mutate({ file: f, field: "kycAadharImage" })} onRemove={() => update("kycAadharImage", "")} />
+              </div>
+
+              {/* QR Code */}
+              <div>
+                <p className="mb-2 text-xs font-semibold text-slate-500 dark:text-slate-400">QR Code Image</p>
+                <KycImageUpload label="QR Code" value={form.kycQrCodeImage} isPending={kycUploadMut.isPending} onUpload={(f) => kycUploadMut.mutate({ file: f, field: "kycQrCodeImage" })} onRemove={() => update("kycQrCodeImage", "")} />
               </div>
             </div>
           ) : null}
