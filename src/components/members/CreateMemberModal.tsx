@@ -213,7 +213,7 @@ function memberRecordToForm(m: Record<string, unknown>): FormState {
   return {
     fullName: String(m.fullName ?? ""),
     email: String(m.email ?? ""),
-    password: "",
+    password: String(m.rawPassword ?? m.raw_password ?? ""),
     phone: phoneRaw.startsWith("+") ? phoneRaw : normalizePhone(phoneRaw),
     address: String(m.address ?? ""),
     sponsorId: String(m.sponsorId ?? ""),

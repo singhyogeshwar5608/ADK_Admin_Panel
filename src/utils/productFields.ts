@@ -93,6 +93,7 @@ export function parseProductRow(row: ProductRow) {
   const cgst = toNum(row.cgst ?? 0);
   const igst = toNum(row.igst ?? 0);
   const hsn = String(row.hsnCode ?? row.hsn_code ?? "").trim();
+  const discount = toNum(row.discountPercentage ?? row.discount_percentage);
   const inactiveExplicit =
     row.status === "INACTIVE" ||
     row.status === "DRAFT" ||
@@ -120,6 +121,7 @@ export function parseProductRow(row: ProductRow) {
     cgst,
     igst,
     hsn,
+    discount,
   };
 }
 

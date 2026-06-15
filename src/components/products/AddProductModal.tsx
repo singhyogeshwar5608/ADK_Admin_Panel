@@ -96,6 +96,7 @@ function apiProductToFormState(p: Record<string, unknown>): ProductFormState {
     brand: String(p.brand ?? "Independent").trim() || "Independent",
     salePrice: numToInputStr(actual),
     mrp: numToInputStr(total),
+    discount: numToInputStr(p.discountPercentage ?? p.discount_percentage),
     bv: numToInputStr(p.bv),
     stock: numToInputStr(p.stock ?? p.stockQuantity),
     packAmount: numToInputStr(p.weight ?? p.productWeight ?? p.product_weight ?? 0),
@@ -188,6 +189,7 @@ type ProductFormState = {
   brand: string;
   salePrice: string;
   mrp: string;
+  discount: string;
   bv: string;
   stock: string;
   packAmount: string;
@@ -212,6 +214,7 @@ const emptyForm = (): ProductFormState => ({
   brand: "Independent",
   salePrice: "",
   mrp: "",
+  discount: "",
   bv: "",
   stock: "",
   packAmount: "",
@@ -442,13 +445,20 @@ export function AddProductModal({
     const brand = form.brand.trim() || "Independent";
 
     /** Matches `StoreProductRequest` / `UpdateProductRequest` (`_backend_extract`). */
-    const payload = {
+    const payload: Record<string, unknown> = {
       sku,
       name,
       brand,
       description: form.description.trim() || null,
       actual_price,
       total_price,
+      discount_percentage: (() => {
+        const m = Number(form.mrp);
+        const s = Number(form.salePrice);
+        if (!Number.isFinite(m) || m <= 0 || !Number.isFinite(s) || s < 0) return null;
+        const d = ((m - s) / m) * 100;
+        return d > 0 ? Number(d.toFixed(2)) : null;
+      })(),
       bv: bvN,
       stock: stockN,
       weight: weightN,
@@ -466,7 +476,7 @@ export function AddProductModal({
     };
 
     if (isEdit && editProductId != null) {
-      update.mutate({ id: editProductId, payload });
+      update.mutate({ id: editProductId, payload: payload });
     } else {
       create.mutate(payload);
     }
@@ -565,6 +575,25 @@ export function AddProductModal({
                     value={form.mrp}
                     onChange={(e) => setForm((f) => ({ ...f, mrp: e.target.value }))}
                     className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs text-slate-900 outline-none placeholder:text-slate-400 focus:border-primary focus:ring-2 focus:ring-primary/20 dark:border-white/10 dark:bg-slate-900 dark:text-white"
+                  />
+                </label>
+                <label className="block">
+                  <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                    Discount %
+                  </span>
+                  <input
+                    readOnly
+                    tabIndex={-1}
+                    value={
+                      (() => {
+                        const sale = Number(form.salePrice);
+                        const mrp = Number(form.mrp);
+                        if (!Number.isFinite(mrp) || mrp <= 0 || !Number.isFinite(sale) || sale < 0) return "";
+                        const discount = ((mrp - sale) / mrp) * 100;
+                        return discount > 0 ? `${discount.toFixed(1)}%` : "";
+                      })()
+                    }
+                    className="mt-1 w-full rounded-lg border border-slate-200 bg-slate-50 px-2 py-1.5 text-xs text-green-600 font-medium outline-none cursor-default dark:border-white/10 dark:bg-slate-800 dark:text-green-400"
                   />
                 </label>
                 <label className="block">

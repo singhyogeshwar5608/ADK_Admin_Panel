@@ -279,7 +279,6 @@ export function MemberViewModal({
                 <DetailGrid cols={3} colorIdx={0}>
                   <DetailTile label="Serial No." value={member.serialNo != null ? String(member.serialNo) : "—"} />
                   <DetailTile label="Member ID" value={member.memberId || "—"} />
-                  <DetailTile label="Depth" value={member.depth != null ? String(member.depth) : "—"} />
                 </DetailGrid>
 
                 <DetailGrid cols={2} colorIdx={1}>

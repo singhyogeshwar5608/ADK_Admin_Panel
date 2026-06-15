@@ -4,7 +4,7 @@ import { MemberStatusBadge } from "@/components/members/MemberStatusBadge";
 import { MemberViewModal } from "@/components/members/MemberViewModal";
 import { LoadingScreen } from "@/components/LoadingScreen";
 import type { MemberListRow, MembersListResponse } from "@/types/memberList";
-import { parseMembersListResponse } from "@/types/memberList";
+import { parseMembersListResponse, normalizeMemberRow } from "@/types/memberList";
 import { parseApiError } from "@/utils/parseApiError";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Eye, MoreVertical, Plus } from "lucide-react";
@@ -13,8 +13,8 @@ import { toast } from "sonner";
 
 const TABLE_HEADERS = [
   "ID No.",
-  "Member",
-  "Member-ID",
+  "Leader",
+  "Leader ID",
   "Left Team",
   "Left BV",
   "Right Team",
@@ -46,6 +46,7 @@ export function MembersPage() {
   const [createOpen, setCreateOpen] = useState(false);
   const [editMemberId, setEditMemberId] = useState<string | null>(null);
   const [viewMember, setViewMember] = useState<MemberListRow | null>(null);
+  const [viewLoading, setViewLoading] = useState(false);
   const [menuForId, setMenuForId] = useState<string | null>(null);
   const [menuPos, setMenuPos] = useState<{ x: number; y: number } | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -127,6 +128,33 @@ export function MembersPage() {
     }
     const next = m.status === "ACTIVE" ? "SUSPENDED" : "ACTIVE";
     patchStatus.mutate({ id, status: next });
+  };
+
+  const viewSponsor = async (m: MemberListRow) => {
+    setMenuForId(null);
+    setMenuPos(null);
+    const sponsorId = m.sponsorId;
+    if (!sponsorId) {
+      toast.error("No sponsor found for this member");
+      return;
+    }
+    setViewMember(null);
+    setViewLoading(true);
+    try {
+      const res = await membersApi.get(sponsorId);
+      const payload = res.data as any;
+      let raw = payload;
+      if (raw && typeof raw === "object") {
+        if ("member" in raw) raw = (raw as any).member;
+        if (raw && typeof raw === "object" && "data" in raw) raw = (raw as any).data;
+      }
+      const member = normalizeMemberRow(raw as Record<string, unknown>);
+      setViewMember(member);
+    } catch (e) {
+      toast.error("Failed to load sponsor: " + parseApiError(e));
+    } finally {
+      setViewLoading(false);
+    }
   };
 
   if (q.isLoading && !q.data) {
@@ -272,6 +300,44 @@ export function MembersPage() {
                     onClick={() => onToggleStatus(m)}
                   >
                     {statusLabel}
+                  </button>
+                  {m.status === "PENDING" ? (
+                    <button
+                      type="button"
+                      className="flex-1 rounded-full border border-emerald-200 px-3 py-2 font-semibold text-emerald-600 dark:border-emerald-400/50"
+                      onClick={() => {
+                        const id = rowId(m);
+                        if (!id) {
+                          toast.error("Member identifier missing");
+                          return;
+                        }
+                        patchStatus.mutate({ id, status: "ACTIVE" });
+                      }}
+                    >
+                      Approve
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      className="flex-1 rounded-full border border-amber-200 px-3 py-2 font-semibold text-amber-600 dark:border-amber-400/50"
+                      onClick={() => {
+                        const id = rowId(m);
+                        if (!id) {
+                          toast.error("Member identifier missing");
+                          return;
+                        }
+                        patchStatus.mutate({ id, status: "PENDING" });
+                      }}
+                    >
+                      Set Pending
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    className="flex-1 rounded-full border border-indigo-200 px-3 py-2 font-semibold text-indigo-600 dark:border-indigo-400/50"
+                    onClick={() => void viewSponsor(m)}
+                  >
+                    View Sponsor
                   </button>
                   <button
                     type="button"
@@ -440,7 +506,7 @@ export function MembersPage() {
           setEditMemberId(null);
         }}
       />
-      <MemberViewModal open={viewMember != null} member={viewMember} onClose={() => setViewMember(null)} />
+      <MemberViewModal open={viewMember != null} member={viewMember} onClose={() => setViewMember(null)} isLoading={viewLoading} />
 
       {menuForId && menuPos ? (
         <>
@@ -473,6 +539,9 @@ export function MembersPage() {
                   )}
                   <button type="button" className="w-full px-4 py-2 text-left text-sm text-slate-600 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-white/10" onClick={() => onToggleStatus(m)}>
                     {toggleLabel}
+                  </button>
+                  <button type="button" className="w-full px-4 py-2 text-left text-sm text-indigo-600 hover:bg-indigo-50 dark:text-indigo-300 dark:hover:bg-indigo-500/10" onClick={() => { void viewSponsor(m); }}>
+                    View Sponsor
                   </button>
                   <button type="button" className="w-full px-4 py-2 text-left text-sm text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-500/10" onClick={() => { setMenuForId(null); void onDelete(m); }} disabled={del.isPending}>
                     Delete

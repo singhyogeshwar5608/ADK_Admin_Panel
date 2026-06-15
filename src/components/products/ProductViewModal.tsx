@@ -123,6 +123,7 @@ export function ProductViewModal({
               value={formatRupee(Number.isFinite(product.sale) ? product.sale : product.mrp)}
             />
             <DetailTile label="MRP" value={formatRupee(product.mrp)} />
+            <DetailTile label="Discount" value={Number.isFinite(product.discount) && (product.discount as number) > 0 ? `${(product.discount as number).toFixed(1)}%` : "—"} />
             <DetailTile label="Total price" value={formatRupee(product.total)} />
             <DetailTile label="MLM Product" value={raw.isMlm || raw.is_mlm ? "Yes" : "No"} />
             <DetailTile label="Coming Soon" value={raw.isComingSoon || raw.is_coming_soon ? "Yes" : "No"} />
