@@ -5,7 +5,7 @@
       ],
       "target": {
         "namespace": "android_app",
-        "package_name": "com.adk.partnet",
+        "package_name": "com.adk.partner",
         "sha256_cert_fingerprints": [
           "92:19:3F:B9:69:58:98:2B:C5:33:FF:7A:A7:0A:92:CA:C4:C6:A7:4C:E7:8D:B5:6B:DE:0B:AC:2A:0E:38:37:EC"
         ]

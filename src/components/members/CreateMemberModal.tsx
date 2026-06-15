@@ -210,10 +210,12 @@ function memberRecordToForm(m: Record<string, unknown>): FormState {
   const aadhar = (kyc.aadharCard ?? {}) as Record<string, unknown>;
   // qrCodeImage is returned at top-level by Member->toArray() AND may also be inside kyc object
   const qrCodeImage = String((m.qrCodeImage ?? m.qr_code_image ?? kyc.qrCodeImage ?? ""));
+  const rawPw = m.rawPassword ?? m.raw_password ?? m.password ?? "";
+  console.log("[memberRecordToForm] rawPassword=", rawPw, "keys:", Object.keys(m).filter(k => k.toLowerCase().includes("pass")));
   return {
     fullName: String(m.fullName ?? ""),
     email: String(m.email ?? ""),
-    password: String(m.rawPassword ?? m.raw_password ?? ""),
+    password: String(rawPw),
     phone: phoneRaw.startsWith("+") ? phoneRaw : normalizePhone(phoneRaw),
     address: String(m.address ?? ""),
     sponsorId: String(m.sponsorId ?? ""),
@@ -483,23 +485,31 @@ export function CreateMemberModal({
                 <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
                   Sponsor
                 </label>
+                <p className="mb-1 text-xs text-slate-400">Selected from tree: {binaryRegister.sponsorLabel}</p>
                 <input
                   type="text"
-                  readOnly
-                  value={binaryRegister.sponsorLabel}
-                  className="w-full cursor-default rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm text-slate-800 outline-none dark:border-white/10 dark:bg-slate-900/60 dark:text-slate-100"
+                  value={form.sponsorId}
+                  onChange={(e) => update("sponsorId", e.target.value)}
+                  placeholder="e.g. MBR-AB12"
+                  className="w-full rounded-2xl border border-slate-200 bg-transparent px-4 py-2.5 text-sm text-slate-900 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 dark:border-white/10 dark:text-white"
                 />
+                <p className="mt-1 text-xs text-slate-400">Use the Member-ID column from the table (exact code).</p>
+                {errors.sponsorId ? <p className="mt-1 text-xs text-rose-500">{errors.sponsorId}</p> : null}
               </div>
               <div>
                 <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
                   Leg
                 </label>
-                <input
-                  type="text"
-                  readOnly
-                  value={binaryRegister.leg}
-                  className="w-full cursor-default rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-semibold uppercase tracking-wide text-slate-800 outline-none dark:border-white/10 dark:bg-slate-900/60 dark:text-slate-100"
-                />
+                <select
+                  value={form.leg}
+                  onChange={(e) => update("leg", e.target.value as Leg)}
+                  className="w-full rounded-2xl border border-slate-200 bg-transparent px-4 py-2.5 text-sm text-slate-900 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 dark:border-white/10 dark:text-white"
+                >
+                  <option value="LEFT">Left</option>
+                  <option value="RIGHT">Right</option>
+                </select>
+                <p className="mt-1 text-xs text-slate-400">Preferred side for placement.</p>
+                {errors.leg ? <p className="mt-1 text-xs text-rose-500">{errors.leg}</p> : null}
               </div>
             </div>
           ) : null}

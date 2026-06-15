@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ADK — Open wishlist</title>
+  <style>
+    body { font-family: system-ui, sans-serif; padding: 1.25rem; max-width: 28rem; margin: 0 auto; }
+    a { color: #0d47a1; word-break: break-all; }
+    .muted { color: #555; font-size: 0.9rem; }
+  </style>
+</head>
+<body>
+  <p id="status">Opening the ADK app…</p>
+  <p id="fallback" class="muted" hidden>
+    If nothing happens, install the ADK app and tap:
+    <a id="native" href="#">Open in ADK app</a>
+  </p>
+  <script>
+    (function () {
+      var path = window.location.pathname;
+      // Extract token from /members/wishlist/TOKEN or /wishlist/TOKEN
+      var parts = path.split('/');
+      var token = parts[parts.length - 1] || '';
+
+      if (!token) {
+        document.getElementById('status').textContent = 'Invalid wishlist link.';
+        return;
+      }
+
+      var qs = 'type=wishlist&token=' + encodeURIComponent(token);
+      var nativeUrl = 'adkpartner://open?' + qs;
+
+      var nativeA = document.getElementById('native');
+      nativeA.href = nativeUrl;
+      nativeA.addEventListener('click', function () {
+        window.location.href = nativeUrl;
+      });
+
+      var isAndroid = /Android/i.test(navigator.userAgent);
+      if (isAndroid) {
+        var intent =
+          'intent://master.d1yeg5lmbstgw1.amplifyapp.com/members/wishlist/' + encodeURIComponent(token) +
+          '#Intent;scheme=https;package=com.adk.partner;' +
+          'action=android.intent.action.VIEW;' +
+          'category=android.intent.category.BROWSABLE;' +
+          'category=android.intent.category.DEFAULT;end';
+        window.location.replace(intent);
+      } else {
+        window.location.replace(nativeUrl);
+      }
+
+      setTimeout(function () {
+        document.getElementById('status').textContent =
+          'Still here? Open the link below, or open this page in Chrome/Safari if you are inside WhatsApp/Facebook.';
+        document.getElementById('fallback').hidden = false;
+      }, 2000);
+    })();
+  </script>
+</body>
+</html>
