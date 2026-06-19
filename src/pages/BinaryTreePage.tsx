@@ -540,13 +540,7 @@ export function BinaryTreePage() {
     return layoutNodes.length > 0 ? canvasSize(layoutNodes, LAYOUT_OPTS) : { width: 0, height: 0 };
   }, [layoutNodes]);
 
-  // ── Stats ───────────────────────────────────────────────────────
   const realNodes = useMemo(() => layoutNodes.filter((n) => !n.isPlaceholder), [layoutNodes]);
-  const leftCount = useMemo(() => layoutNodes.filter((n) => !n.isPlaceholder && n.leg === "LEFT").length, [layoutNodes]);
-  const rightCount = useMemo(() => layoutNodes.filter((n) => !n.isPlaceholder && n.leg === "RIGHT").length, [layoutNodes]);
-  const totalBv = useMemo(() => {
-    return realNodes.reduce((sum, n) => sum + (n.node.totalBv ?? 0), 0);
-  }, [realNodes]);
 
   // ── BV summaries ───────────────────────────────────────────────
   const leftLegBv = useMemo(() => {
