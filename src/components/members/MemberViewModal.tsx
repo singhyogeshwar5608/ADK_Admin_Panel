@@ -285,6 +285,9 @@ export function MemberViewModal({
                   <DetailTile label="Full name" value={member.fullName || "—"} />
                   <DetailTile label="Email" value={member.email || "—"} />
                   <DetailTile label="Phone" value={member.phone || "—"} />
+                  <DetailTile label="Aadhar" value={member.kyc?.aadharCard?.number || "—"} />
+                  <DetailTile label="PAN" value={member.kyc?.panCard?.number || "—"} />
+                  <DetailTile label="Bank Account" value={member.kyc?.bankAccount?.number || "—"} />
                   <DetailTile label="Address" value={member.address || "—"} />
                   <DetailTile label="Sponsor member ID" value={member.sponsorId || "—"} />
                 </DetailGrid>
@@ -296,7 +299,7 @@ export function MemberViewModal({
 
                 <DetailGrid cols={2} colorIdx={3}>
                   <DetailTile label="Joined" value={formatDate(member.createdAt)} />
-                  <DetailTile label="Last login" value={formatDate(member.stats?.lastLoginAt)} />
+                  <DetailTile label="Last login" value={member.stats?.lastLoginAt || "—"} />
                 </DetailGrid>
 
                 <div className="rounded-lg border-l-4 border-pink-500 bg-pink-50/40 p-2 sm:rounded-xl sm:p-3 dark:bg-opacity-10">
@@ -351,15 +354,6 @@ export function MemberViewModal({
               <DetailTile label="KYC status" value={member.kyc?.status || "—"} />
             </DetailGrid>
 
-            <DetailGrid cols={2} colorIdx={10}>
-              <DetailTile label="Aadhar" value={member.kyc?.aadharCard?.number || "—"} />
-              <DetailTile label="PAN" value={member.kyc?.panCard?.number || "—"} />
-            </DetailGrid>
-
-            <DetailGrid cols={2} colorIdx={11}>
-              <DetailTile label="Bank Account" value={member.kyc?.bankAccount?.number || "—"} />
-              <DetailTile label="Last updated" value={formatDate(member.updatedAt)} />
-            </DetailGrid>
           </div>
             </>
           )}

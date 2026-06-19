@@ -1,6 +1,24 @@
-# Referral / signup bridge — MUST be before the SPA catch-all
+# App Link Verification (CRITICAL)
+/.well-known/assetlinks.json    /.well-known/assetlinks.json   200
+
+# Referral / signup bridge
+/members/signup    /signup/index.html   200
+/members/signup/   /signup/index.html   200
+/members/signup/*  /signup/index.html   200
 /signup    /signup/index.html   200
 /signup/   /signup/index.html   200
+
+# Wishlist deep links
+/members/wishlist/*  /wishlist/index.html   200
+/members/wishlist    /wishlist/index.html   200
+/members/w/*         /wishlist/index.html   200
+/wishlist/*  /wishlist/index.html   200
+/w/*         /wishlist/index.html   200
+/wishlist    /wishlist/index.html   200
+
+# Product deep links
+/members/product/*  /product/index.html   200
+/product/*  /product/index.html   200
 
 # React SPA
 /*    /index.html   200

@@ -239,7 +239,7 @@ export function MembersPage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-base font-semibold text-slate-900 dark:text-white">{m.fullName}</p>
-                    <p className="text-xs text-slate-400">No. {m.serialNo != null ? String(m.serialNo) : "—"} &middot; {m.memberId}</p>
+                    <p className="text-xs text-slate-400">No. {m.serialNo != null ? String(m.serialNo) : (m.id != null ? String(m.id) : "—")} &middot; {m.memberId}</p>
                   </div>
                   <MemberStatusBadge status={m.status} />
                 </div>
@@ -398,7 +398,7 @@ export function MembersPage() {
                     return (
                       <tr key={id} className="hover:bg-slate-50/60 dark:hover:bg-white/5">
                         <td className="px-4 py-4 text-sm text-slate-500 sm:px-6 dark:text-slate-300">
-                          {m.serialNo != null ? String(m.serialNo) : "—"}
+                          {m.serialNo != null ? String(m.serialNo) : (m.id != null ? String(m.id) : "—")}
                         </td>
                         <td className="px-4 py-4 uppercase sm:px-6">
                           <div className="text-slate-900 dark:text-white">{m.fullName}</div>

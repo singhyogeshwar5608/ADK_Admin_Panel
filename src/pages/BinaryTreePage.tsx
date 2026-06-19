@@ -255,7 +255,12 @@ function buildTreeFromFlatPlacementPayload(payload: unknown): TreeNode | null {
 
   const rootInner = rawRoot as AnyObj;
   const ppRoot = placementPathOfMember(rootInner);
-  const rows = [rootInner, ...laravelBinaryNodes(p)].filter(Boolean);
+
+  // Backend query `LIKE 'root%'` root ko bhi nodes mein include kar deta hai,
+  // isliye nodes mein se root jaisi placementPath wale entries hatao
+  const childNodes = laravelBinaryNodes(p).filter((n) => placementPathOfMember(n) !== ppRoot);
+
+  const rows = [rootInner, ...childNodes].filter(Boolean);
   const byPath = new Map<string, AnyObj>();
   for (const row of rows) {
     const path = placementPathOfMember(row);
@@ -576,13 +581,6 @@ export function BinaryTreePage() {
     return toNum(pick(o, ["right_leg_bv", "rightLegBv", "right_bv"])) ?? toNum(pick(o, ["summaryRightBv", "rightSummaryBv"]));
   }, [q.data]);
 
-  const treeMeta = useMemo(() => {
-    const o = (q.data ?? null) as AnyObj | null;
-    if (!o || typeof o !== "object") return null;
-    const m = o.meta;
-    return m && typeof m === "object" ? (m as AnyObj) : null;
-  }, [q.data]);
-
   // ── Sponsor lookup for register slots ─────────────────────────
   const placeholderSponsorMap = useMemo(() => {
     const result = new Map<string, { sponsor: TreeNode; leg: Leg }>();
@@ -654,14 +652,6 @@ export function BinaryTreePage() {
       }));
   }, [layoutNodes]);
 
-  // ── Stats tiles ────────────────────────────────────────────────
-  const StatsTile = ({ label, value, color }: { label: string; value: string; color: string }) => (
-    <div className={`flex-1 rounded-xl px-3 py-2.5 text-center ${color}`}>
-      <p className="text-[18px] font-bold">{value}</p>
-      <p className="text-[10px] font-semibold uppercase tracking-[0.1em] opacity-70">{label}</p>
-    </div>
-  );
-
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -688,8 +678,8 @@ export function BinaryTreePage() {
 
           <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-xs text-slate-500 dark:text-slate-300">
             <div className="flex flex-wrap items-center gap-4">
-              {treeMeta && typeof treeMeta.count === "number" && (
-                <span className="font-semibold text-slate-600 dark:text-slate-200">{treeMeta.count} member{treeMeta.count === 1 ? "" : "s"}</span>
+              {layoutNodes.length > 0 && (
+                <span className="font-semibold text-slate-600 dark:text-slate-200">{realNodes.length} member{realNodes.length === 1 ? "" : "s"}</span>
               )}
               <span className="inline-flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-amber-400" /> Pending</span>
               <span className="inline-flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-emerald-400" /> Active</span>
@@ -755,18 +745,6 @@ export function BinaryTreePage() {
             </div>
           )}
         </div>
-
-        {/* Stats panel */}
-        {rootNode && layoutNodes.length > 0 && (
-          <div className="border-t border-slate-200 bg-white px-6 py-4 dark:border-white/10 dark:bg-slate-950">
-            <div className="flex gap-3">
-              <StatsTile label="Members" value={String(realNodes.length)} color="bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-300" />
-              <StatsTile label="Left" value={String(leftCount)} color="bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-300" />
-              <StatsTile label="Right" value={String(rightCount)} color="bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300" />
-              <StatsTile label="Total BV" value={formatInt(totalBv)} color="bg-violet-50 text-violet-700 dark:bg-violet-500/10 dark:text-violet-300" />
-            </div>
-          </div>
-        )}
 
         {/* BV footer */}
         <div className="flex items-center justify-between gap-4 border-t border-slate-200 bg-white px-6 py-5 dark:border-white/10 dark:bg-slate-950">

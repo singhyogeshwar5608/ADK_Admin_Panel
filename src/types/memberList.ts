@@ -62,7 +62,7 @@ export interface MembersListResponse {
 
 /** Map snake_case API rows to the shape the UI expects. */
 export function normalizeMemberRow(raw: Record<string, unknown>): MemberListRow {
-  const stats = raw.stats as MemberListRow["stats"];
+  const stats = (raw.stats ?? {}) as MemberListRow["stats"];
   const bv = raw.bv as MemberListRow["bv"];
   const wallet = raw.wallet as MemberListRow["wallet"];
   const kyc = raw.kyc as MemberListRow["kyc"];
