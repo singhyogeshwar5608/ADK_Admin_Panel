@@ -667,31 +667,45 @@ export function AddProductModal({
                     className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs text-slate-900 outline-none placeholder:text-slate-400 focus:border-primary focus:ring-2 focus:ring-primary/20 dark:border-white/10 dark:bg-slate-900 dark:text-white"
                   />
                 </label>
-                <div className="block sm:col-span-2">
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={form.isMlm}
-                      onChange={(e) => setForm((f) => ({ ...f, isMlm: e.target.checked }))}
-                      className="h-4 w-4 rounded border-slate-300 text-primary focus:ring-primary dark:border-white/10 dark:bg-slate-900"
-                    />
-                    <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                      MLM Product (Is MLM)
-                    </span>
-                  </label>
-                  <label className="flex items-center gap-2 cursor-pointer mt-2">
-                    <input
-                      type="checkbox"
-                      checked={form.isComingSoon}
-                      onChange={(e) => setForm((f) => ({ ...f, isComingSoon: e.target.checked }))}
-                      className="h-4 w-4 rounded border-slate-300 text-primary focus:ring-primary dark:border-white/10 dark:bg-slate-900"
-                    />
-                    <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                      Coming Soon Product
-                    </span>
-                  </label>
-                </div>
-                <div className="block sm:col-span-2">
+                <label className="block sm:col-span-2">
+                  <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                    Shipping charge (₹) <span className="font-normal text-slate-500">(defaults to 0)</span>
+                  </span>
+                  <input
+                    inputMode="decimal"
+                    placeholder="0"
+                    value={form.shippingCharge}
+                    onChange={(e) => setForm((f) => ({ ...f, shippingCharge: e.target.value }))}
+                    className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs text-slate-900 outline-none placeholder:text-slate-400 focus:border-primary focus:ring-2 focus:ring-primary/20 dark:border-white/10 dark:bg-slate-900 dark:text-white"
+                  />
+                </label>
+              </div>
+
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={form.isMlm}
+                  onChange={(e) => setForm((f) => ({ ...f, isMlm: e.target.checked }))}
+                  className="h-4 w-4 rounded border-slate-300 text-primary focus:ring-primary dark:border-white/10 dark:bg-slate-900"
+                />
+                <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                  MLM Product (Is MLM)
+                </span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={form.isComingSoon}
+                  onChange={(e) => setForm((f) => ({ ...f, isComingSoon: e.target.checked }))}
+                  className="h-4 w-4 rounded border-slate-300 text-primary focus:ring-primary dark:border-white/10 dark:bg-slate-900"
+                />
+                <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                  Coming Soon Product
+                </span>
+              </label>
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="sm:col-span-2">
                   <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
                     Pack quantity / weight
                     <span className="font-normal text-slate-500"> (stored as product weight)</span>
@@ -723,19 +737,7 @@ export function AddProductModal({
                     logistics.
                   </p>
                 </div>
-                <label className="block sm:col-span-2">
-                  <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                    Shipping charge (₹) <span className="font-normal text-slate-500">(defaults to 0)</span>
-                  </span>
-                  <input
-                    inputMode="decimal"
-                    placeholder="0"
-                    value={form.shippingCharge}
-                    onChange={(e) => setForm((f) => ({ ...f, shippingCharge: e.target.value }))}
-                    className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs text-slate-900 outline-none placeholder:text-slate-400 focus:border-primary focus:ring-2 focus:ring-primary/20 dark:border-white/10 dark:bg-slate-900 dark:text-white"
-                  />
-                </label>
-                              </div>
+              </div>
 
               <label className="block">
                 <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Categories</span>
