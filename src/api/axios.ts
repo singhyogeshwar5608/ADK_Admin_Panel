@@ -6,7 +6,7 @@ const baseURL = resolveApiBaseUrl();
 
 export const api = axios.create({
   baseURL,
-  withCredentials: true,
+  withCredentials: false,
   headers: {
     "Content-Type": "application/json",
     Accept: "application/json",
@@ -16,7 +16,7 @@ export const api = axios.create({
 /** Avoid interceptor recursion when refreshing tokens. */
 const refreshClient = axios.create({
   baseURL,
-  withCredentials: true,
+  withCredentials: false,
   headers: {
     "Content-Type": "application/json",
     Accept: "application/json",
@@ -38,7 +38,9 @@ async function refreshTokens(): Promise<string | null> {
         return data.accessToken;
       })
       .catch((err) => {
-        tokenStorage.clearTokens();
+        if (err.response?.status === 401 || err.response?.status === 422) {
+          tokenStorage.clearTokens();
+        }
         throw err;
       })
       .finally(() => {
@@ -91,7 +93,10 @@ api.interceptors.response.use(
     original._retry = true;
     try {
       const access = await refreshTokens();
-      if (!access) return Promise.reject(error);
+      if (!access) {
+        tokenStorage.clearTokens();
+        return Promise.reject(error);
+      }
       const headers = AxiosHeaders.from(original.headers ?? {});
       headers.set("Authorization", `Bearer ${access}`);
       original.headers = headers;

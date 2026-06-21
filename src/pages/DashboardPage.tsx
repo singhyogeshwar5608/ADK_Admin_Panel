@@ -67,6 +67,7 @@ export function DashboardPage() {
   const reportQuery = useQuery({
     queryKey: ["reports", "dashboard"],
     queryFn: async () => (await dashboardApi.reports()).data as DashboardReport,
+    staleTime: 0,
   });
 
   const settingsQuery = useQuery({
@@ -157,42 +158,31 @@ export function DashboardPage() {
   const { totals: M, topMembers: rawTop } = reportQuery.data;
   const topList = rawTop ?? [];
 
-  const $ = (n: number | undefined | null, d = 0) => n ?? d;
+  const $ = (n: number | undefined | null, d = 0) => Number.isFinite(n) ? n! : d;
   const fmt = (n: number | undefined | null) =>
     `₹${$(n).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
   const totalSales = $(M.totalSales);
-  const pct = (v: string) => Number(v) / 100;
-  const simPct = {
-    self: pct(sim.selfIncome),
-    sponsor: pct(sim.directIncome),
-    matching: pct(sim.matchingIncome),
-    selfRep: pct(sim.selfRepurchaseIncome),
-    repMatch: pct(sim.repurchaseMatchingIncome),
-    award: pct(sim.awardIncome),
-  };
 
   const inactive = M.inactiveMembers ?? Math.max(0, $(M.totalMembers) - $(M.activeMembers));
   const pending = M.pendingMembers ?? 0;
-  const selfPurchaseIncome = $(M.selfPurchaseIncome, totalSales * simPct.self);
-  const sponsorIncome = $(M.sponsorIncome, totalSales * simPct.sponsor);
-  const matchingIncome = $(M.matchingIncome, totalSales * simPct.matching);
-  const selfRepurchase = $(M.selfRepurchase, totalSales * simPct.selfRep);
-  const repurchaseMatching = $(M.repurchaseMatching, totalSales * simPct.repMatch);
-  const repurchaseAwards = $(M.repurchaseAwards, totalSales * simPct.award);
+  const selfPurchaseIncome = $(M.selfPurchaseIncome);
+  const sponsorIncome = $(M.sponsorIncome);
+  const matchingIncome = $(M.matchingIncome);
+  const selfRepurchase = $(M.selfRepurchase);
+  const repurchaseMatching = $(M.repurchaseMatching);
+  const repurchaseAwards = $(M.repurchaseAwards);
   const tourRewards = $(M.tourRewards);
   const royalty = $(M.royalty);
-  const totalIncome = $(M.totalIncome,
-    selfPurchaseIncome + sponsorIncome + matchingIncome + selfRepurchase +
-    repurchaseMatching + repurchaseAwards + tourRewards + royalty,
-  );
+  const totalIncome = $(M.totalIncome);
 
   const statCards = [
     { title: "Total Members", value: $(M.totalMembers).toLocaleString(), subtitle: `${$(M.activeMembers)} active`, icon: Users },
     { title: "Inactive", value: inactive.toLocaleString(), subtitle: "Non-active members", icon: UserX },
+    { title: "Active Users", value: $(M.activeMembers).toLocaleString(), subtitle: "Verified & active", icon: UserCheck },
     { title: "Pending", value: pending.toLocaleString(), subtitle: "Awaiting approval", icon: Clock },
     { title: "Total Sales", value: fmt(totalSales), subtitle: "Revenue last 30 days", icon: TrendingUp },
-    { title: "Total BV", value: $(M.totalBv).toLocaleString(), subtitle: "30-day volume", icon: Activity },
+    { title: "Total BV", value: `${$(M.totalBv).toLocaleString()} BV`, subtitle: "30-day volume", icon: Activity },
     { title: "Orders Today", value: $(M.todaysOrders).toString(), subtitle: `${$(M.totalOrders)} lifetime`, icon: ShoppingBag },
     { title: "Self Purchase Income", value: fmt(selfPurchaseIncome), subtitle: "Self purchase earnings", icon: DollarSign },
     { title: "Sponsor Income", value: fmt(sponsorIncome), subtitle: "Direct sponsor earnings", icon: UserCheck },
@@ -207,6 +197,18 @@ export function DashboardPage() {
 
   return (
     <div className="space-y-8">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Dashboard</h2>
+        <button
+          type="button"
+          onClick={() => qc.invalidateQueries({ queryKey: ["reports", "dashboard"] })}
+          disabled={reportQuery.isFetching}
+          className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-600 shadow-sm transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-white/10 dark:bg-slate-900 dark:text-white dark:hover:bg-white/10"
+        >
+          <RefreshCcw className={`h-4 w-4 ${reportQuery.isFetching ? "animate-spin" : ""}`} />
+          {reportQuery.isFetching ? "Refreshing…" : "Refresh Data"}
+        </button>
+      </div>
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-5">
         {statCards.map((c) => (
           <StatCard key={c.title} {...c} />
@@ -318,8 +320,8 @@ export function DashboardPage() {
           <div className="mt-1 flex flex-wrap items-center justify-between gap-2">
             <h3 className="text-xl font-semibold">Dummy income calculator</h3>
             <p className="max-w-xl text-sm text-slate-300">
-              Same percentage rules as Simulation Controls and the live MLM engine (self, direct, matching 2:1 first
-              match, repurchase self and sponsor award, optional reward). Totals ignore weekly capping ( ₹
+              Same percentage rules as Simulation Controls and the live MLM engine (self, direct, matching 1:1
+              ratio, repurchase self and sponsor award, optional reward). Totals ignore weekly capping ( ₹
               {preview.weeklyCap.toLocaleString()} cap per member per week in production). Matching at one node is
               illustrative — real matching depends on your binary tree.
             </p>
@@ -420,7 +422,7 @@ export function DashboardPage() {
           </div>
 
           <div className="space-y-4 rounded-2xl border border-white/10 bg-slate-800/40 p-4">
-            <h4 className="text-sm font-semibold text-white">Binary matching at one node (first 2:1 match)</h4>
+            <h4 className="text-sm font-semibold text-white">Binary matching at one node (1:1 ratio)</h4>
             <p className="text-xs text-slate-400">
               Leave fields empty to assume all joining BV is balanced under one parent (left = right = half of total
               join BV). Real trees split volume across many legs.
@@ -451,7 +453,7 @@ export function DashboardPage() {
             </div>
             <dl className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
               <div className="flex justify-between gap-4 rounded-xl bg-slate-900/50 px-3 py-2 text-slate-300">
-                <dt>Matched BV (2:1 formula)</dt>
+                <dt>Matched BV (1:1 match)</dt>
                 <dd className="font-mono text-white">
                   {preview.firstMatchBv > 0
                     ? `${preview.firstMatchBv.toLocaleString(undefined, { maximumFractionDigits: 2 })} BV`
@@ -484,7 +486,7 @@ export function DashboardPage() {
             </div>
             {preview.firstMatchBv > 0 ? (
               <div className="flex flex-wrap items-center justify-between gap-3 border-t border-white/10 pt-2 text-slate-300">
-                <span>Plus one illustrative 2:1 first match at the demo node (join matching %)</span>
+                <span>Plus one illustrative 1:1 match at the demo node (join matching %)</span>
                 <span className="font-mono text-white">
                   ₹{Math.round(preview.grandWithIllustrativeMatch).toLocaleString()} combined
                 </span>

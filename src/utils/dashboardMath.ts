@@ -4,11 +4,9 @@ export function parseNumericInput(value: string | number): number {
   return Number.isFinite(n) ? n : 0;
 }
 
-/** First 2:1 match BV at a single node (bundle `WN`). */
+/** First match BV at a single node (1:1 ratio). */
 export function firstMatchBv(leftBv: number, rightBv: number): number {
-  const leftUnits = leftBv / 2;
-  const rightUnits = rightBv / 1;
-  return Math.min(leftUnits, rightUnits) * 3;
+  return Math.min(leftBv, rightBv);
 }
 
 export interface SimulationFormState {

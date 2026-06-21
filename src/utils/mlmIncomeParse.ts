@@ -444,7 +444,7 @@ export function parseMlmIncomeOverview(
   if (!nextRatio) {
     const firstDone = pick(bv, [["firstMatchDone", "first_match_done"]]);
     if (typeof firstDone === "boolean") {
-      nextRatio = firstDone ? "1:1" : "2:1";
+      nextRatio = "1:1";
     } else {
       const a = num(pick(bv, [["ratioLeft", "ratio_left"], ["leftRatio", "left_ratio"]]));
       const b = num(pick(bv, [["ratioRight", "ratio_right"], ["rightRatio", "right_ratio"]]));
