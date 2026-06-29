@@ -5,19 +5,16 @@ import { X } from "lucide-react";
 import { useId, type ReactNode } from "react";
 
 function formatNum(n: unknown): string {
-  if (typeof n !== "number" || !Number.isFinite(n)) return "—";
-  return n.toLocaleString("en-IN", { maximumFractionDigits: 2 });
+  const num = typeof n === "string" ? parseFloat(n) : (n as number);
+  if (typeof num !== "number" || !Number.isFinite(num)) return "—";
+  return num.toLocaleString("en-IN", { maximumFractionDigits: 2 });
 }
 
 interface IncomeStats {
-  self_purchase: number;
-  sponsor_income: number;
-  matching_income: number;
-  self_repurchase: number;
-  repurchase_matching: number;
-  repurchase_awards: number;
-  tour_rewards: number;
-  royalty: number;
+  self: number;
+  sponsor: number;
+  matching: number;
+  reward: number;
 }
 
 interface StatisticsResponse {
@@ -26,14 +23,10 @@ interface StatisticsResponse {
 }
 
 const INCOME_LABELS: { key: keyof IncomeStats; label: string }[] = [
-  { key: "self_purchase", label: "Self Purchase Income" },
-  { key: "sponsor_income", label: "Sponsor Income" },
-  { key: "matching_income", label: "Matching Income" },
-  { key: "self_repurchase", label: "Self Re-purchase Income" },
-  { key: "repurchase_matching", label: "Repurchase Matching Income" },
-  { key: "repurchase_awards", label: "Repurchase Awards" },
-  { key: "tour_rewards", label: "Tour Rewards" },
-  { key: "royalty", label: "Royalty Income" },
+  { key: "self", label: "Self Income" },
+  { key: "sponsor", label: "Sponsor Income" },
+  { key: "matching", label: "Matching Income" },
+  { key: "reward", label: "Reward Income" },
 ];
 
 function formatDate(iso?: string): string {
@@ -109,7 +102,8 @@ export function MemberViewModal({
   const incomeStatsQuery = useQuery({
     queryKey: ["member-income-stats", member?.memberId],
     queryFn: async () => {
-      const res = await mlmApi.statistics(member!.memberId!);
+      if (!member?.memberId) throw new Error("No memberId");
+      const res = await mlmApi.statistics(member.memberId);
       return res.data as StatisticsResponse;
     },
     enabled: open && !!member?.memberId,
@@ -336,6 +330,10 @@ export function MemberViewModal({
               <DetailTile label="Left team" value={String(leftTeam)} />
               <DetailTile label="Right team" value={String(rightTeam)} />
               <DetailTile label="Team size" value={String(member.stats?.teamSize ?? "—")} />
+            </DetailGrid>
+            <DetailGrid cols={2} colorIdx={6}>
+              <DetailTile label="Active" value={String(member.stats?.activeTeam ?? "—")} />
+              <DetailTile label="Inactive" value={String(member.stats?.inactiveTeam ?? "—")} />
             </DetailGrid>
 
                 <DetailGrid cols={2} colorIdx={7}>

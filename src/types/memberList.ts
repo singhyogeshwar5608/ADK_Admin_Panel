@@ -40,6 +40,8 @@ export interface MemberListRow {
     leftChild?: string | null;
     rightChild?: string | null;
     teamSize?: number;
+    activeTeam?: number;
+    inactiveTeam?: number;
     totalTeamBV?: number;
     directRefs?: number;
     lastLoginAt?: string;

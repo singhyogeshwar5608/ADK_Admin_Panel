@@ -2,6 +2,7 @@ import { AppShell } from "@/components/layout/AppShell";
 import { RequireAdmin } from "@/components/layout/RequireAdmin";
 import { RequireAuth } from "@/components/layout/RequireAuth";
 import { AdkEventsPage } from "@/pages/AdkEventsPage";
+import { AdkKitProductsPage } from "@/pages/AdkKitProductsPage";
 import { BinaryTreePage } from "@/pages/BinaryTreePage";
 import { CataloguePage } from "@/pages/CataloguePage";
 import { CategoriesPage } from "@/pages/CategoriesPage";
@@ -26,6 +27,7 @@ export default function App() {
         <Route element={<AppShell />}>
           <Route path="/" element={<HomeRedirect />} />
           <Route path="/products" element={<ProductsPage />} />
+          <Route path="/adk-kit-products" element={<AdkKitProductsPage />} />
           <Route path="/categories" element={<CategoriesPage />} />
           <Route path="/delivery-centers" element={<DeliveryCentersPage />} />
           <Route path="/catalogue" element={<CataloguePage />} />
