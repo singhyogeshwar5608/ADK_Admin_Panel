@@ -189,6 +189,11 @@ export function OrdersPage() {
             <p className="text-xs text-slate-500">
               {o.memberId || "—"} · {o.memberEmail || "—"}
             </p>
+            {o.phone && (
+              <p className="mt-0.5 text-xs font-semibold text-slate-700 dark:text-slate-300">
+                📱 {o.phone}
+              </p>
+            )}
             {o.address && (
               <p className="mt-1 text-[11px] leading-relaxed text-slate-400 dark:text-slate-500">
                 {o.address}
@@ -260,6 +265,7 @@ export function OrdersPage() {
               <tr className="border-b border-slate-100 bg-slate-50/90 dark:border-white/5 dark:bg-white/[0.03]">
                 <th className={TH}>Order</th>
                 <th className={TH}>Member</th>
+                <th className={TH}>Mobile</th>
                 <th className={TH}>Totals</th>
                 <th className={TH}>Status</th>
                 <th className={TH}>Payment</th>
@@ -280,14 +286,17 @@ export function OrdersPage() {
                   <td className="px-4 py-4 sm:px-5">
                     <p className="font-bold text-slate-900 dark:text-white">{o.memberName}</p>
                     <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
-                      {o.memberId ? `${o.memberId} · ` : ""}
-                      {o.memberEmail || "—"}
+                      {o.memberId !== "—" ? `${o.memberId} · ` : ""}
+                      {o.memberEmail !== "—" ? o.memberEmail : "—"}
                     </p>
                     {o.address && (
                       <p className="mt-1 text-[11px] leading-relaxed text-slate-400 line-clamp-2 max-w-[250px] dark:text-slate-500">
                         {o.address}
                       </p>
                     )}
+                  </td>
+                  <td className="px-4 py-4 sm:px-5">
+                    <p className="font-bold text-slate-900 dark:text-white">{o.phone || "—"}</p>
                   </td>
                   <td className="px-4 py-4 font-semibold text-slate-900 dark:px-5 dark:text-white">
                     <p>{formatRupeeOrder(o.amount)}</p>
@@ -368,7 +377,7 @@ export function OrdersPage() {
               ))}
               {pageItems.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-6 py-16 text-center text-slate-500">
+                  <td colSpan={8} className="px-6 py-16 text-center text-slate-500">
                     No orders match your filters.
                   </td>
                 </tr>

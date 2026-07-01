@@ -13,6 +13,7 @@ export type ParsedOrder = {
   memberName: string;
   memberId: string;
   memberEmail: string;
+  phone?: string;
   address?: string;
   shiprocketOrderId?: string;
   shiprocketShipmentId?: string;
@@ -127,6 +128,12 @@ export function parseOrderRow(r: RawOrderRecord): ParsedOrder | null {
   const memberId = String(memberIdRaw ?? "").trim();
   const memberEmail = String(memberEmailRaw ?? "").trim();
 
+  // Phone: check memberSnapshot.phone first, then shippingAddress.phone
+  const memberPhoneRaw = mb?.phone ?? (r.memberSnapshot as Record<string, unknown> | undefined)?.phone;
+  const shippingAddress = r.shippingAddress as Record<string, unknown> | undefined;
+  const shippingPhoneRaw = shippingAddress?.phone as string | undefined;
+  const phone = String(memberPhoneRaw ?? shippingPhoneRaw ?? "").trim();
+
   // Last resort: scan the whole order object for member fields.
   let fallbackName = memberName;
   let fallbackEmail = memberEmail;
@@ -191,6 +198,8 @@ export function parseOrderRow(r: RawOrderRecord): ParsedOrder | null {
     address = parts.join(", ");
   }
 
+  const isVisitor = !fallbackId && !fallbackName;
+
   return {
     id,
     status,
@@ -199,9 +208,10 @@ export function parseOrderRow(r: RawOrderRecord): ParsedOrder | null {
     amount,
     bv,
     createdAt,
-    memberName: fallbackName || fallbackId || "—",
-    memberId: fallbackId,
-    memberEmail: fallbackEmail,
+    memberName: isVisitor ? "Visitor" : (fallbackName || fallbackId || "—"),
+    memberId: isVisitor ? "—" : fallbackId,
+    memberEmail: isVisitor ? "—" : fallbackEmail,
+    phone,
     address,
     shiprocketOrderId: r.shiprocketOrderId as string,
     shiprocketShipmentId: r.shiprocketShipmentId as string,
