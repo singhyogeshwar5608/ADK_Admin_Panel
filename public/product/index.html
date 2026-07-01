@@ -18,9 +18,11 @@
   </p>
   <script>
     (function () {
-      var originalPath = new URLSearchParams(window.location.search).get('path') || window.location.pathname;
-      var parts = originalPath.split('/');
-      var productId = parts[parts.length - 1] || '';
+      var href = window.location.href;
+      var m = href.match(/[?&]path=([^&]+)/);
+      var path = m ? decodeURIComponent(m[1]) : window.location.pathname;
+      var productId = path.match(/\/(?:members\/)?product\/([^/]+?)(?:\/|$)/);
+      productId = productId ? productId[1] : '';
 
       if (!productId || productId === 'index.html') {
         document.getElementById('status').textContent = 'Invalid product link.';

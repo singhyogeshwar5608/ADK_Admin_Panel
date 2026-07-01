@@ -18,10 +18,11 @@
   </p>
   <script>
     (function () {
-      var originalPath = new URLSearchParams(window.location.search).get('path') || window.location.pathname;
-      // Extract token from /members/wishlist/TOKEN or /wishlist/TOKEN
-      var parts = originalPath.split('/');
-      var token = parts[parts.length - 1] || '';
+      var href = window.location.href;
+      var m = href.match(/[?&]path=([^&]+)/);
+      var path = m ? decodeURIComponent(m[1]) : window.location.pathname;
+      var token = path.match(/\/(?:members\/)?(?:wishlist|w)\/([^/]+?)(?:\/|$)/);
+      token = token ? token[1] : '';
 
       if (!token) {
         document.getElementById('status').textContent = 'Invalid wishlist link.';
