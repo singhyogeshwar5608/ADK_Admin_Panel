@@ -18,11 +18,11 @@
   </p>
   <script>
     (function () {
-      var path = window.location.pathname;
-      var parts = path.split('/');
+      var originalPath = new URLSearchParams(window.location.search).get('path') || window.location.pathname;
+      var parts = originalPath.split('/');
       var productId = parts[parts.length - 1] || '';
 
-      if (!productId) {
+      if (!productId || productId === 'index.html') {
         document.getElementById('status').textContent = 'Invalid product link.';
         return;
       }

@@ -18,9 +18,9 @@
   </p>
   <script>
     (function () {
-      var path = window.location.pathname;
+      var originalPath = new URLSearchParams(window.location.search).get('path') || window.location.pathname;
       // Extract token from /members/wishlist/TOKEN or /wishlist/TOKEN
-      var parts = path.split('/');
+      var parts = originalPath.split('/');
       var token = parts[parts.length - 1] || '';
 
       if (!token) {

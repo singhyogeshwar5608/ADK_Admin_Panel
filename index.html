@@ -11,6 +11,20 @@
       href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=General+Sans:wght@400;500;600&display=swap"
       rel="stylesheet"
     />
+    <script>
+      (function () {
+        var p = window.location.pathname;
+        var q = '?path=' + encodeURIComponent(p);
+        if (p.startsWith('/product/')) window.location.replace('/product/index.html' + q);
+        else if (p.startsWith('/wishlist/') || p.startsWith('/w/')) window.location.replace('/wishlist/index.html' + q);
+        else if (p === '/wishlist' || p === '/w') window.location.replace('/wishlist/index.html' + q);
+        else if (p.startsWith('/signup')) window.location.replace('/signup/index.html' + window.location.search);
+        else if (p.startsWith('/members/product/')) window.location.replace('/product/index.html' + q);
+        else if (p.startsWith('/members/wishlist/') || p.startsWith('/members/w/')) window.location.replace('/wishlist/index.html' + q);
+        else if (p === '/members/wishlist' || p === '/members/w') window.location.replace('/wishlist/index.html' + q);
+        else if (p.startsWith('/members/signup')) window.location.replace('/signup/index.html' + q);
+      })();
+    </script>
   </head>
   <body class="bg-slate-950">
     <div id="root"></div>
