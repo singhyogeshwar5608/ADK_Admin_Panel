@@ -42,14 +42,25 @@ function devRelativeApiProxy(apiBaseRaw: string, proxyTarget: string): Record<st
   };
 }
 
-/** Netlify serves `/signup` as `/signup/index.html` (see `netlify.toml`). Mirror that in dev. */
-function signupBridge(): { name: string; configureServer(v: { middlewares: Connect.Server }): void } {
+/** Netlify serves bridge pages (signup, wishlist, product) as static HTML. Mirror that in dev. */
+function bridgePages(): { name: string; configureServer(v: { middlewares: Connect.Server }): void } {
   return {
-    name: "signup-bridge",
+    name: "bridge-pages",
     configureServer(server) {
       server.middlewares.use((req, _res, next) => {
         const url = req.url ?? "";
+        // Normalise query params: /signup?ref=… → /signup/index.html
         if (url === "/signup" || url === "/signup/") req.url = "/signup/index.html";
+        else if (url === "/wishlist" || url === "/wishlist/") req.url = "/wishlist/index.html";
+        else if (url === "/w" || url === "/w/") req.url = "/wishlist/index.html";
+        else if (url === "/product" || url === "/product/") req.url = "/product/index.html";
+        else if (url.startsWith("/wishlist/")) req.url = "/wishlist/index.html";
+        else if (url.startsWith("/w/")) req.url = "/wishlist/index.html";
+        else if (url.startsWith("/product/")) req.url = "/product/index.html";
+        else if (url.startsWith("/members/signup")) req.url = "/signup/index.html";
+        else if (url.startsWith("/members/w/")) req.url = "/wishlist/index.html";
+        else if (url.startsWith("/members/wishlist")) req.url = "/wishlist/index.html";
+        else if (url.startsWith("/members/product")) req.url = "/product/index.html";
         next();
       });
     },
@@ -67,7 +78,7 @@ export default defineConfig(({ mode }) => {
       : undefined;
 
   return {
-    plugins: [react(), signupBridge()],
+    plugins: [react(), bridgePages()],
     resolve: {
       alias: { "@": src },
     },

@@ -14,3 +14,54 @@ frontend:
   cache:
     paths:
       - node_modules/**/*
+  customRules:
+    # App Link Verification
+    - source: /.well-known/assetlinks.json
+      target: /.well-known/assetlinks.json
+      status: '200'
+    # Signup bridge
+    - source: /members/signup
+      target: /signup/index.html
+      status: '200'
+    - source: /members/signup/
+      target: /signup/index.html
+      status: '200'
+    - source: /members/signup/*
+      target: /signup/index.html
+      status: '200'
+    - source: /signup
+      target: /signup/index.html
+      status: '200'
+    - source: /signup/
+      target: /signup/index.html
+      status: '200'
+    # Wishlist deep links
+    - source: /members/wishlist/*
+      target: /wishlist/index.html
+      status: '200'
+    - source: /members/wishlist
+      target: /wishlist/index.html
+      status: '200'
+    - source: /members/w/*
+      target: /wishlist/index.html
+      status: '200'
+    - source: /wishlist/*
+      target: /wishlist/index.html
+      status: '200'
+    - source: /w/*
+      target: /wishlist/index.html
+      status: '200'
+    - source: /wishlist
+      target: /wishlist/index.html
+      status: '200'
+    # Product deep links
+    - source: /members/product/*
+      target: /product/index.html
+      status: '200'
+    - source: /product/*
+      target: /product/index.html
+      status: '200'
+    # React SPA (catch-all — MUST be last)
+    - source: /<*>
+      target: /index.html
+      status: '200'

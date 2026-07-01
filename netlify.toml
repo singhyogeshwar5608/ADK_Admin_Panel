@@ -2,7 +2,34 @@
   command = "npm run build"
   publish = "dist"
 
-# Order matters: first match wins. Signup must not fall through to the SPA.
+# Order matters: first match wins. Deep-link bridge pages must not fall through to the SPA.
+
+# App Link Verification
+[[redirects]]
+  from = "/.well-known/assetlinks.json"
+  to = "/.well-known/assetlinks.json"
+  status = 200
+  force = true
+
+# Signup bridge
+[[redirects]]
+  from = "/members/signup"
+  to = "/signup/index.html"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/members/signup/"
+  to = "/signup/index.html"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/members/signup/*"
+  to = "/signup/index.html"
+  status = 200
+  force = true
+
 [[redirects]]
   from = "/signup"
   to = "/signup/index.html"
@@ -15,6 +42,57 @@
   status = 200
   force = true
 
+# Wishlist deep links
+[[redirects]]
+  from = "/members/wishlist/*"
+  to = "/wishlist/index.html"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/members/wishlist"
+  to = "/wishlist/index.html"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/members/w/*"
+  to = "/wishlist/index.html"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/wishlist/*"
+  to = "/wishlist/index.html"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/w/*"
+  to = "/wishlist/index.html"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/wishlist"
+  to = "/wishlist/index.html"
+  status = 200
+  force = true
+
+# Product deep links
+[[redirects]]
+  from = "/members/product/*"
+  to = "/product/index.html"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/product/*"
+  to = "/product/index.html"
+  status = 200
+  force = true
+
+# React SPA (catch-all — MUST be last)
 [[redirects]]
   from = "/*"
   to = "/index.html"
